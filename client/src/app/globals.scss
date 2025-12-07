@@ -1,0 +1,78 @@
+// Theme Colors
+:root {
+    --color-primary: #5C85FF;
+    --color-text-dark: #323039;
+    --color-text-soft: #797C84;
+    --color-border-light: #DDDEE3;
+    --color-white: #FFFFFF;
+    --color-black: #000000;
+
+    // Custom Cursors
+    --cursor-default: url('/cursors/DefaultCursor.svg') 0 0, auto;
+    --cursor-pointer: url('/cursors/HandPointing.svg') 10 0, pointer;
+    --cursor-text: url('/cursors/TextCursor.svg') 12 12, text;
+    --cursor-grabbing: url('/cursors/HandDrag.svg') 12 12, grabbing;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    cursor: var(--cursor-default);
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-product-sans), sans-serif;
+    cursor: var(--cursor-default);
+}
+
+// Custom Cursor Styles - Global
+// Pointer cursor for interactive elements
+a,
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+label[for],
+select,
+.clickable,
+[onclick],
+[tabindex]:not([tabindex="-1"]) {
+    cursor: var(--cursor-pointer) !important;
+}
+
+// Text cursor for text inputs
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input:not([type]),
+textarea,
+[contenteditable="true"],
+[contenteditable=""],
+.text-input {
+    cursor: var(--cursor-text) !important;
+}
+
+// Grabbing cursor for drag actions
+.dragging,
+*:active[draggable="true"] {
+    cursor: var(--cursor-grabbing) !important;
+}
+
+// Grab cursor (before dragging)
+[draggable="true"] {
+    cursor: var(--cursor-pointer) !important;
+}

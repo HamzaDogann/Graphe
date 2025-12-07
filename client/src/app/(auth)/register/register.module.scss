@@ -1,0 +1,50 @@
+.registerPage {
+    width: 100%;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--color-text-dark);
+    margin-bottom: 32px;
+    margin-top: 32px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.eyeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-soft);
+    transition: color 0.2s;
+
+    &:hover {
+        color: var(--color-text-dark);
+    }
+}
+
+.footerText {
+    text-align: center;
+    color: var(--color-text-soft);
+    font-size: 16px;
+    margin-top: 24px;
+}
+
+.link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

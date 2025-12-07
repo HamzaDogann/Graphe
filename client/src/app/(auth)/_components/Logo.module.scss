@@ -1,0 +1,18 @@
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.logoIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logoText {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--color-text-dark);
+}

@@ -1,0 +1,311 @@
+.rightPanel {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+}
+
+// Dot Pattern Background
+.dotPattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--color-border-light) 1.5px, transparent 1.5px);
+    background-size: 17px 17px;
+    background-color: rgb(251, 251, 255);
+    opacity: 0.8;
+}
+
+// Images Container
+.imagesContainer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+
+    &.visible {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    &.hidden {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+// Floating Image
+.floatingImage {
+    position: absolute;
+    animation: float 3s ease-in-out infinite;
+
+    &.topLeft {
+        top: -5%;
+        left: -8%;
+        animation-delay: 0s;
+    }
+
+    &.topRight {
+        top: -8%;
+        right: -10%;
+        animation-delay: 0.5s;
+    }
+
+    &.bottomLeft {
+        bottom: -5%;
+        left: -10%;
+        animation-delay: 1s;
+    }
+
+    &.bottomRight {
+        bottom: -8%;
+        right: -5%;
+        animation-delay: 1.5s;
+    }
+}
+
+.imageWrapper {
+    animation: fadeInScale 0.6s ease-out forwards;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.15));
+}
+
+.image {
+    width: auto;
+    height: auto;
+    max-width: 320px;
+    max-height: 320px;
+    object-fit: contain;
+}
+
+// Text Content
+.textContent {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 360px;
+
+    &.visible {
+        .coloredTextWrapper {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .normalText {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    &.hidden {
+        .coloredTextWrapper {
+            opacity: 0;
+            transform: translateX(-40px);
+        }
+
+        .normalText {
+            opacity: 0;
+            transform: translateX(-40px);
+        }
+    }
+
+    // Left-Right alignment: coloredText üstte solda, normalText altta sağda
+    // Örnek: Visualize (üst-sol) / Your Data (alt-sağ)
+    &.leftRight {
+        .coloredTextWrapper {
+            align-self: flex-start;
+            order: 1;
+            margin-left: 0px; // Üstteki text soldan margin
+        }
+
+        .normalText {
+            align-self: flex-end;
+            order: 2;
+            margin-right: 70px; // Alttaki text sağdan margin - sola yaklaştırmak için artır
+        }
+    }
+
+    // Right-Left alignment: normalText üstte solda, coloredText altta sağda
+    // Örnek: Create Your (üst-sol) / Canvas (alt-sağ)
+    &.rightLeft {
+        .coloredTextWrapper {
+            align-self: flex-end;
+            order: 2;
+            margin-right: 50px; // Canvas sağdan margin
+            transition-delay: 0.4s; // Canvas sonra gelecek
+        }
+
+        .normalText {
+            align-self: flex-start;
+            order: 1;
+            margin-left: 0px; // Create Your soldan margin
+            transition-delay: 0s; // Create Your önce gelecek
+        }
+    }
+}
+
+// Wrapper for colored text with glow
+.coloredTextWrapper {
+    position: relative;
+    display: inline-block;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// Glow layer - aynı gradient, blur'lu
+.coloredTextGlow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 55px;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.1;
+    background: linear-gradient(90deg,
+            var(--color-primary),
+            #4CAF50,
+            #F07272,
+            var(--color-primary));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 8s linear infinite;
+    filter: blur(8px);
+    opacity: 0.5;
+    z-index: -1;
+}
+
+.coloredText {
+    font-size: 55px;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.1;
+    position: relative;
+    background: linear-gradient(90deg,
+            var(--color-primary),
+            #4CAF50,
+            #F07272,
+            var(--color-primary));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 8s linear infinite;
+}
+
+.normalText {
+    font-size: 40px;
+    font-weight: 400;
+    color: var(--color-text-dark);
+    margin: 0;
+    line-height: 1.1;
+    text-shadow: 0 0 8px rgba(50, 48, 57, 0.15), 0 0 16px rgba(50, 48, 57, 0.1);
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.4s, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.4s;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+// Animations
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+        filter: blur(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+// Responsive - 1600px üstü (büyük ekranlar)
+@media (min-width: 1600px) {
+    .image {
+        max-width: 420px;
+        max-height: 420px;
+    }
+
+    .coloredText,
+    .coloredTextGlow {
+        font-size: 82px; // 55px * 1.5
+    }
+
+    .normalText {
+        font-size: 60px; // 40px * 1.5
+    }
+
+    .textContent {
+        width: 500px;
+    }
+}
+
+// Responsive - 1200px altı
+@media (max-width: 1200px) {
+    .image {
+        max-width: 240px;
+        max-height: 240px;
+    }
+
+    .coloredText,
+    .coloredTextGlow {
+        font-size: 45px;
+    }
+
+    .normalText {
+        font-size: 32px;
+    }
+
+    .textContent {
+        width: 300px;
+    }
+}
+
+// Responsive - 992px altı
+@media (max-width: 992px) {
+    .image {
+        max-width: 180px;
+        max-height: 180px;
+    }
+
+    .coloredText,
+    .coloredTextGlow {
+        font-size: 38px;
+    }
+
+    .normalText {
+        font-size: 26px;
+    }
+
+    .textContent {
+        width: 250px;
+    }
+}
