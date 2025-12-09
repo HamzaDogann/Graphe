@@ -20,6 +20,16 @@ const productSans = localFont({
       style: "normal",
     },
     {
+      path: "../fonts/ProductSans-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../fonts/ProductSans-Thin.ttf",
+      weight: "300",
+      style: "normal",
+    },
+    {
       path: "../fonts/ProductSans-BoldItalic.ttf",
       weight: "700",
       style: "italic",

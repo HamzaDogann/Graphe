@@ -1,11 +1,44 @@
 // Theme Colors
 :root {
     --color-primary: #5C85FF;
+    --color-primary-light: #E8EEFF;
+    --color-primary-hover: #4A73ED;
+    --color-secondary: #764ba2;
     --color-text-dark: #323039;
     --color-text-soft: #797C84;
+    --color-text-muted: #A0A3AB;
+    --color-text-primary: #1A1A1A;
+    --color-text-secondary: #4A4A4A;
     --color-border-light: #DDDEE3;
+    --color-border-soft: #EEEEF0;
+    --color-bg-light: #F8F9FB;
+    --color-bg-hover: #F0F1F4;
+    --color-bg-active: #E8E9ED;
+    --color-input-bg: #F5F5F5;
+    --color-hover: #F0F1F4;
+    --color-success: #22C55E;
+    --color-success-light: #DCFCE7;
+    --color-warning: #F59E0B;
+    --color-warning-light: #FEF3C7;
+    --color-error: #EF4444;
+    --color-error-light: #FEE2E2;
+    --color-purple: #8B5CF6;
+    --color-purple-light: #EDE9FE;
+    --color-green: #10B981;
+    --color-green-light: #D1FAE5;
+    --color-coral: #F87171;
+    --color-coral-light: #FEE2E2;
+    --color-soft-blue-white: #E7F0FF;
     --color-white: #FFFFFF;
     --color-black: #000000;
+
+    // Sidebar
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 72px;
+    --sidebar-transition: 0.3s ease;
+
+    // Topbar
+    --topbar-height: 64px;
 
     // Custom Cursors
     --cursor-default: url('/cursors/DefaultCursor.svg') 0 0, auto;
@@ -19,6 +52,7 @@
     padding: 0;
     box-sizing: border-box;
     cursor: var(--cursor-default);
+    font-family: var(--font-product-sans), sans-serif;
 }
 
 html,
@@ -30,7 +64,7 @@ body {
 }
 
 // Custom Cursor Styles - Global
-// Pointer cursor for interactive elements
+// Pointer cursor for interactive elements and ALL their children
 a,
 button,
 [role="button"],
@@ -41,7 +75,18 @@ label[for],
 select,
 .clickable,
 [onclick],
-[tabindex]:not([tabindex="-1"]) {
+[tabindex]:not([tabindex="-1"]),
+a *,
+button *,
+[role="button"] *,
+[type="button"] *,
+[type="submit"] *,
+[type="reset"] *,
+label[for] *,
+select *,
+.clickable *,
+[onclick] *,
+[tabindex]:not([tabindex="-1"]) * {
     cursor: var(--cursor-pointer) !important;
 }
 
