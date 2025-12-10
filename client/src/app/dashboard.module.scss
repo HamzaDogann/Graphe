@@ -1,6 +1,5 @@
 .dashboardLayout {
     display: flex;
-    min-height: 100vh;
     background: var(--color-bg-light);
 }
 
@@ -10,7 +9,7 @@
     flex-direction: column;
     margin-left: var(--sidebar-width);
     transition: margin-left var(--sidebar-transition);
-    min-height: 100vh;
+
 
     &.expanded {
         margin-left: var(--sidebar-collapsed-width);
@@ -19,6 +18,5 @@
 
 .content {
     flex: 1;
-    padding: 24px 32px;
     overflow-y: auto;
 }

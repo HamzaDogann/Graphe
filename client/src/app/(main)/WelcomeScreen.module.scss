@@ -1,0 +1,347 @@
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+.welcomeRoot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100dvh - var(--topbar-height));
+    background: var(--Bg-chat,
+            linear-gradient(180deg, #ebf0ff 2.64%, #fff 99.44%));
+    position: relative;
+    overflow: hidden;
+    /* Scrollbar çıkmaması için */
+}
+
+/* --- INTRO OVERLAY (Hello Username) --- */
+.introOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    /* Diğer her şeyin üzerinde */
+    pointer-events: none;
+    /* Tıklamayı engellemesin */
+}
+
+.greeting {
+    margin: 0;
+    font-size: 2.3rem;
+    /* Biraz daha büyük ve etkileyici */
+    font-weight: 400;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Greeting Animasyon Durumları --- */
+.greetingHidden {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+.greetingVisible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.greetingLeave {
+    opacity: 0;
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease;
+}
+
+/* --- Gradient Text Styles --- */
+.coloredTextWrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.coloredTextGlow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    margin: 0;
+    line-height: 1.1;
+    background: linear-gradient(90deg,
+            var(--color-primary, #4f46e5),
+            #4caf50,
+            #f07272,
+            var(--color-primary, #4f46e5));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    /* HIZLI BAŞLA, YAVAŞLA (Ease-Out) - 2s */
+    animation: gradientShift 2s ease-out infinite;
+
+    filter: blur(10px);
+    /* Glow biraz daha güçlü */
+    opacity: 0.7;
+    z-index: -1;
+    width: 100%;
+    text-align: center;
+}
+
+.coloredText {
+    font-size: inherit;
+    font-weight: inherit;
+    margin: 0;
+    line-height: 1.1;
+    position: relative;
+    background: linear-gradient(90deg,
+            var(--color-primary, #4f46e5),
+            #4caf50,
+            #f07272,
+            var(--color-primary, #4f46e5));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    /* HIZLI BAŞLA, YAVAŞLA - 2s */
+    animation: gradientShift 2s ease-out infinite;
+
+    display: block;
+}
+
+/* --- MAIN CONTENT STYLES --- */
+.welcomeMain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 1000px;
+    /* İçeriği makul bir genişlikte tut */
+}
+
+/* Reveal Animations (Tüm elemanlar için ortak) */
+.revealHidden {
+    opacity: 0;
+    transform: translateY(15px);
+    transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
+    pointer-events: none;
+    /* Görünmezken tıklanmasın */
+}
+
+.revealVisible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
+    pointer-events: auto;
+}
+
+/* 1. Logo Circle */
+.welcomeCircle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin-bottom: 18px;
+    box-shadow: 0 4px 20px 0 rgba(102, 126, 234, 0.1);
+    /* Animasyon sınıfları (revealHidden/Visible) HTML'den gelecek */
+}
+
+/* 2. Title */
+.titleWrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.welcomeTitle {
+    font-family: var(--font-product-sans), sans-serif;
+    font-size: 1.8rem;
+    font-weight: 400;
+    color: var(--color-text-dark);
+    text-align: center;
+    margin: 0;
+}
+
+/* 3. Subtitle */
+.welcomeSubtitle {
+    font-size: 1rem;
+    color: var(--color-text-soft);
+    margin-bottom: 24px;
+    text-align: center;
+    max-width: 600px;
+}
+
+/* 4. Card Grid */
+.cardGrid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px 0 rgba(102, 126, 234, 0.06);
+    border: 1.5px solid #e6eaf3;
+    padding: 22px 26px 20px 26px;
+    min-width: 220px;
+    max-width: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.18s, border 0.18s, transform 0.18s;
+    cursor: pointer;
+    position: relative;
+}
+
+.card:hover {
+    border: 1.5px solid #2563eb;
+    box-shadow: 0 8px 32px 0 rgba(37, 99, 235, 0.1);
+    transform: translateY(-2px) scale(1.03);
+}
+
+.cardIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 1.7rem;
+    box-shadow: 0 2px 8px 0 rgba(102, 126, 234, 0.08);
+}
+
+.cardIconGreen {
+    background: #d2faf1;
+    color: #14a684;
+}
+
+.cardIconBlue {
+    background: #e7f0ff;
+    color: #2563eb;
+}
+
+.cardIconRed {
+    background: #fff0f0;
+    color: #e24c4b;
+}
+
+.cardTitle {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text-dark);
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.cardDesc {
+    font-size: 0.92rem;
+    color: #7b8190;
+    text-align: center;
+}
+
+/* 5. Upload Section */
+.uploadSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.uploadWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    transition: transform 120ms ease;
+    z-index: 1;
+}
+
+.uploadBtn {
+    background-color: var(--color-green);
+    color: var(--color-white);
+    border: none;
+    border-radius: 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 30px rgba(20, 166, 132, 0.12);
+    cursor: pointer;
+    transition: opacity 120ms ease;
+    position: relative;
+    z-index: 2;
+}
+
+.uploadBtn:hover {
+    opacity: 0.9;
+}
+
+.uploadBtnIcon {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+}
+
+.sideIcon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: auto;
+    pointer-events: none;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.18));
+    z-index: 3;
+}
+
+.leftIcon {
+    left: -22px;
+    top: 60%;
+    z-index: 4;
+}
+
+.rightIcon {
+    right: -28px;
+    top: 46%;
+}
+
+.uploadWrap:active {
+    transform: scale(0.9);
+}
+
+.uploadDisclaimer {
+    font-size: 0.93rem;
+    color: #7b8190;
+    margin-top: 18px;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .cardGrid {
+        flex-direction: column;
+        gap: 18px;
+        align-items: center;
+    }
+
+    .card {
+        min-width: 220px;
+        max-width: 100%;
+        padding: 22px 18px 18px 18px;
+    }
+}
