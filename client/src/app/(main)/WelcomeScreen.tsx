@@ -1,16 +1,21 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./WelcomeScreen.module.scss";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
 
-export default function WelcomeScreen() {
+// Prop tanımı ekliyoruz
+interface WelcomeScreenProps {
+  onFileUpload: (file: File) => void;
+}
+
+export default function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
   // Intro (Hello Hamza) durumu
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
 
-  // Ana içerik animasyon adımları
-  // 0: Gizli, 1: Logo, 2: Title, 3: Subtitle, 4: Cards, 5: Upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [revealedStep, setRevealedStep] = useState(0);
 
   // Placeholder username
@@ -65,9 +70,28 @@ export default function WelcomeScreen() {
     return () => timers.forEach((id) => clearTimeout(id));
   }, [showIntro]);
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onFileUpload(file);
+    }
+  };
+
   return (
     <div className={styles.welcomeRoot}>
-      {/* --- INTRO KATMANI (Tam Ortada) --- */}
+      {/* Gizli Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        accept=".csv, .xlsx, .xls, .json"
+        onChange={handleFileChange}
+      />
+
       {showIntro && (
         <div className={styles.introOverlay}>
           <h1
@@ -153,7 +177,6 @@ export default function WelcomeScreen() {
             </div>
           </div>
 
-          {/* Adım 5: Upload Button & Disclaimer */}
           <div
             className={`${styles.uploadSection} ${
               revealedStep >= 5 ? styles.revealVisible : styles.revealHidden
@@ -167,7 +190,7 @@ export default function WelcomeScreen() {
                 loading="lazy"
               />
 
-              <button className={styles.uploadBtn}>
+              <button onClick={handleUploadClick} className={styles.uploadBtn}>
                 <span className={styles.uploadBtnIcon}>
                   <Upload size={22} />
                 </span>

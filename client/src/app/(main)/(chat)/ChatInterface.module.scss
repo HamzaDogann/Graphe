@@ -1,0 +1,309 @@
+.chatContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.datasetBanner {
+    width: 100%;
+    border: none;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.fileInfo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dbIconWrapper {
+    width: 42px;
+    height: 42px;
+    background-color: #A7FBC3;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-green);
+}
+
+.fileText {
+    display: flex;
+    flex-direction: column;
+}
+
+.fileLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+.fileName {
+    font-size: 0.85rem;
+    color: var(--color-text-soft);
+}
+
+/* Wrapper: İkonları ve butonu bir arada tutar */
+.canvasBtnWrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    z-index: 1;
+    transition: transform 120ms ease;
+
+    /* Tıklanınca hepsi biraz küçülür (tıklama hissi) */
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+/* Yanlardaki İkonların Ortak Özellikleri */
+.canvasSideIcon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    /* Boyutu butona göre ayarladım */
+    height: auto;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+    z-index: 3;
+    /* Butonun üstünde dursunlar */
+}
+
+/* Sol İkon (Graphs) */
+.canvasLeftIcon {
+    left: -20px;
+    /* Dışarı taşırma mesafesi */
+    top: 65%;
+    /* Hafif aşağı sarkıtma (diğer butondaki gibi asimetri için) */
+}
+
+/* Sağ İkon (Easel) */
+.canvasRightIcon {
+    right: -20px;
+    /* Dışarı taşırma mesafesi */
+    top: 45%;
+    /* Hafif yukarı kaldırma */
+}
+
+/* Mevcut Buton (Güncellendi) */
+.canvasBtn {
+    background: linear-gradient(90deg, #5C85FF 0%, #FF4343 100%);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(219, 39, 119, 0.2);
+    cursor: pointer;
+
+    /* Wrapper içindeki pozisyonu için */
+    position: relative;
+    z-index: 2;
+
+    /* Hover efekti (sadece rengi parlatır, transform wrapper'da) */
+    transition: filter 0.2s;
+
+    &:hover {
+        filter: brightness(1.1);
+    }
+}
+
+.contentWrapper {
+    flex: 1;
+    width: 100%;
+    max-width: 750px;
+    /* İçerik çok yayılmasın */
+    margin: 0 auto;
+    /* Yatay ortalama */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* Dikey ortalama */
+    align-items: center;
+    gap: 50px;
+    padding: 0 20px;
+}
+
+/* Hero Text */
+.heroText {
+    text-align: center;
+}
+
+.heroTitle {
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--color-text-dark);
+    margin-bottom: 12px;
+}
+
+.heroSubtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-soft);
+}
+
+/* Suggestions Grid */
+.suggestionsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* Gap arttırıldı: 24px -> 40px */
+    gap: 40px;
+}
+
+.suggestionCard {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+}
+
+/* Renkli Arkaplanlar */
+.bgBlue {
+    background-color: #e0f2fe;
+    color: #0ea5e9;
+}
+
+.bgOrange {
+    background-color: #ffedd5;
+    color: #f97316;
+}
+
+.bgGreen {
+    background-color: #dcfce7;
+    color: #22c55E;
+}
+
+.bgLime {
+    background-color: #ecfccb;
+    color: #84cc16;
+}
+
+.bgPurple {
+    background-color: #f3e8ff;
+    color: #a855f7;
+}
+
+.bgRed {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+/* Input Area */
+.inputWrapper {
+    width: 100%;
+    position: relative;
+    border-radius: 20px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-top: 10px;
+
+    &:focus-within {
+        border-color: var(--color-primary);
+        box-shadow: 0 4px 25px rgba(92, 133, 255, 0.15);
+    }
+}
+
+.inputField {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    margin-bottom: 16px;
+    background: transparent;
+
+    &::placeholder {
+        color: #94a3b8;
+    }
+}
+
+.inputFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.promptPill {
+    background-color: #fff7ed;
+    color: #f97316;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid #ffedd5;
+    transition: 0.2s;
+
+    &:hover {
+        background-color: #ffedd5;
+    }
+}
+
+.inputActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.micBtn {
+    color: var(--color-text-soft);
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+        color: var(--color-primary);
+    }
+}
+
+.sendBtn {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: var(--color-primary-hover);
+    }
+}
