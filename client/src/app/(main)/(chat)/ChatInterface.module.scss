@@ -33,6 +33,7 @@
     flex-direction: column;
     padding: 0;
     animation: fadeIn 0.4s ease-out;
+    overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -54,6 +55,7 @@
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+    z-index: 10;
 }
 
 .fileInfo {
@@ -89,7 +91,6 @@
     color: var(--color-text-soft);
 }
 
-/* Canvas Button Wrapper */
 .canvasBtnWrapper {
     position: relative;
     display: inline-flex;
@@ -150,12 +151,22 @@
     width: 100%;
     max-width: 750px;
     margin: 0 auto;
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 50px;
-    padding: 0 20px;
+    padding-bottom: 160px;
+}
+
+.upperContent {
+    width: 100%;
+    max-width: 750px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    z-index: 1;
 }
 
 .heroText {
@@ -232,11 +243,16 @@
 */
 
 .inputBorderWrapper {
+    position: absolute;
+    bottom: 40px;
+    left: 20px;
+    right: 20px;
+    margin: 0 auto;
     width: 100%;
-    position: relative;
+    max-width: 750px;
+    z-index: 50;
     border-radius: 22px;
     padding: 2.5px;
-    margin-top: 10px;
     transition: all 1s ease, box-shadow 1s ease;
 
     &.animating {
@@ -257,25 +273,46 @@
 
 .inputWrapper {
     width: 100%;
-    height: 100%;
+    height: auto;
     background: white;
     border-radius: 20px;
     padding: 16px;
     border: none;
     display: flex;
     flex-direction: column;
+    /* Voice modunda yükseklik sabit kalsın diye min-height */
+    min-height: 90px;
+    justify-content: center;
 }
 
 .inputField {
-
     width: 100%;
     border: none;
     outline: none;
     font-size: 1rem;
     color: var(--color-text-dark);
     font-weight: 400;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     background: transparent;
+    font-family: inherit;
+    height: auto;
+    min-height: 24px;
+    max-height: 160px;
+    resize: none;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
     &::placeholder {
         color: #94a3b8;
@@ -286,22 +323,21 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-top: auto;
+    width: 100%;
+    /* Voice controls için tam genişlik */
 }
 
-/* --- Prompt Pill Animation --- */
-
-/* Text için yukarı kayma animasyonu */
+/* Prompt Pill Animation */
 @keyframes fadeInUp {
     from {
         opacity: 0;
         transform: translateY(6px);
-        /* Aşağıdan başla */
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
-        /* Yerine gel */
     }
 }
 
@@ -311,11 +347,7 @@
     border-radius: 20px;
     font-weight: 500;
     cursor: var(--cursor-pointer);
-
-    /* Arka plan rengi değişimi yumuşak olsun */
     transition: background-color 0.8s ease, color 0.8s ease, border-color 0.8s ease;
-
-    /* Yazının taşmasını önlemek için */
     overflow: hidden;
     display: inline-flex;
     align-items: center;
@@ -325,7 +357,6 @@
     }
 }
 
-/* React'te 'key' değiştiğinde bu sınıf yeniden render olur ve animasyon çalışır */
 .promptTextAnim {
     cursor: var(--cursor-pointer);
     display: block;
@@ -339,8 +370,15 @@
 }
 
 .micBtn {
+    background: none;
+    border: none;
     color: var(--color-text-soft);
+    cursor: pointer;
     transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
 
     &:hover {
         color: var(--color-primary);
@@ -362,5 +400,91 @@
 
     &:hover {
         background-color: var(--color-primary-hover);
+    }
+}
+
+/* 
+   ---------------------------
+   VOICE MODE STYLES
+   ---------------------------
+*/
+
+.voiceContainer {
+    width: 100%;
+    height: 40px;
+    /* Textarea yerine geçtiği yükseklik */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Dalgayı ortala */
+    margin-bottom: 12px;
+}
+
+.waveWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    /* Çubuklar arası boşluk */
+    height: 100%;
+}
+
+.waveBar {
+    width: 4px;
+    background-color: #5C85FF;
+    /* Mavi renk */
+    border-radius: 4px;
+    transition: height 0.05s ease;
+    /* Çok hızlı geçiş ile akıcılık */
+    /* Min yükseklik 4px */
+}
+
+/* Footer Controls for Voice Mode */
+.voiceControls {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.voiceStatus {
+    font-size: 0.9rem;
+    color: var(--color-text-soft);
+    /* Yanıp sönen nokta efekti eklenebilir */
+}
+
+.voiceActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cancelBtn {
+    background: none;
+    border: none;
+    color: #EF4444;
+    /* Kırmızı */
+    cursor: pointer;
+    padding: 6px;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: scale(1.1);
+        color: #dc2626;
+    }
+}
+
+.confirmBtn {
+    background: none;
+    border: none;
+    color: #5C85FF;
+    /* Mavi */
+    cursor: pointer;
+    padding: 6px;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: scale(1.1);
+        color: #4A73ED;
     }
 }

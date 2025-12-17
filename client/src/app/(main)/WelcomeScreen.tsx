@@ -37,7 +37,7 @@ export default function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
       }, 600);
 
       return () => clearTimeout(removeTimer);
-    }, 0); // 1.2 saniye bekle (okuma süresi)
+    }, 1200); // 1.2 saniye bekle (okuma süresi)
 
     return () => {
       clearTimeout(mountId);
