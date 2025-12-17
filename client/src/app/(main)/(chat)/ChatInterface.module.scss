@@ -1,3 +1,31 @@
+/* --- Animation Properties --- */
+@property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes spinFade {
+    0% {
+        --angle: 0deg;
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    80% {
+        --angle: 288deg;
+        opacity: 1;
+    }
+
+    100% {
+        --angle: 360deg;
+        opacity: 0;
+    }
+}
+
 .chatContainer {
     width: 100%;
     height: 100%;
@@ -17,6 +45,7 @@
     }
 }
 
+/* Banner Styles */
 .datasetBanner {
     width: 100%;
     border: none;
@@ -60,7 +89,7 @@
     color: var(--color-text-soft);
 }
 
-/* Wrapper: İkonları ve butonu bir arada tutar */
+/* Canvas Button Wrapper */
 .canvasBtnWrapper {
     position: relative;
     display: inline-flex;
@@ -68,43 +97,32 @@
     z-index: 1;
     transition: transform 120ms ease;
 
-    /* Tıklanınca hepsi biraz küçülür (tıklama hissi) */
     &:active {
         transform: scale(0.95);
     }
 }
 
-/* Yanlardaki İkonların Ortak Özellikleri */
 .canvasSideIcon {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     width: 42px;
-    /* Boyutu butona göre ayarladım */
     height: auto;
     pointer-events: none;
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
     z-index: 3;
-    /* Butonun üstünde dursunlar */
 }
 
-/* Sol İkon (Graphs) */
 .canvasLeftIcon {
     left: -20px;
-    /* Dışarı taşırma mesafesi */
     top: 65%;
-    /* Hafif aşağı sarkıtma (diğer butondaki gibi asimetri için) */
 }
 
-/* Sağ İkon (Easel) */
 .canvasRightIcon {
     right: -20px;
-    /* Dışarı taşırma mesafesi */
     top: 45%;
-    /* Hafif yukarı kaldırma */
 }
 
-/* Mevcut Buton (Güncellendi) */
 .canvasBtn {
     background: linear-gradient(90deg, #5C85FF 0%, #FF4343 100%);
     color: white;
@@ -118,12 +136,8 @@
     gap: 8px;
     box-shadow: 0 4px 12px rgba(219, 39, 119, 0.2);
     cursor: pointer;
-
-    /* Wrapper içindeki pozisyonu için */
     position: relative;
     z-index: 2;
-
-    /* Hover efekti (sadece rengi parlatır, transform wrapper'da) */
     transition: filter 0.2s;
 
     &:hover {
@@ -135,19 +149,15 @@
     flex: 1;
     width: 100%;
     max-width: 750px;
-    /* İçerik çok yayılmasın */
     margin: 0 auto;
-    /* Yatay ortalama */
     display: flex;
     flex-direction: column;
     justify-content: center;
-    /* Dikey ortalama */
     align-items: center;
     gap: 50px;
     padding: 0 20px;
 }
 
-/* Hero Text */
 .heroText {
     text-align: center;
 }
@@ -164,11 +174,9 @@
     color: var(--color-text-soft);
 }
 
-/* Suggestions Grid */
 .suggestionsGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    /* Gap arttırıldı: 24px -> 40px */
     gap: 40px;
 }
 
@@ -189,7 +197,6 @@
     }
 }
 
-/* Renkli Arkaplanlar */
 .bgBlue {
     background-color: #e0f2fe;
     color: #0ea5e9;
@@ -220,30 +227,53 @@
     color: #ef4444;
 }
 
-/* Input Area */
-.inputWrapper {
+/* 
+   --- Input Area Logic ---
+*/
+
+.inputBorderWrapper {
     width: 100%;
     position: relative;
-    border-radius: 20px;
-    border: 2px solid #e2e8f0;
-    background: white;
-    padding: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    border-radius: 22px;
+    padding: 2.5px;
     margin-top: 10px;
+    transition: all 1s ease, box-shadow 1s ease;
 
-    &:focus-within {
-        border-color: var(--color-primary);
-        box-shadow: 0 4px 25px rgba(92, 133, 255, 0.15);
+    &.animating {
+        background: conic-gradient(from var(--angle), #EF4444, #22C55E, #5C85FF, #F59E0B, #EF4444);
+        animation: spinFade 1.3s linear infinite;
+        box-shadow: none;
+    }
+
+    &.static {
+        background: #D8DDFF;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+
+        &:focus-within {
+            box-shadow: 0 4px 25px rgba(92, 133, 255, 0.15);
+        }
     }
 }
 
+.inputWrapper {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 20px;
+    padding: 16px;
+    border: none;
+    display: flex;
+    flex-direction: column;
+}
+
 .inputField {
+
     width: 100%;
     border: none;
     outline: none;
     font-size: 1rem;
     color: var(--color-text-dark);
+    font-weight: 400;
     margin-bottom: 16px;
     background: transparent;
 
@@ -258,20 +288,48 @@
     justify-content: space-between;
 }
 
+/* --- Prompt Pill Animation --- */
+
+/* Text için yukarı kayma animasyonu */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+        /* Aşağıdan başla */
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        /* Yerine gel */
+    }
+}
+
 .promptPill {
-    background-color: #fff7ed;
-    color: #f97316;
     font-size: 0.85rem;
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: 500;
-    cursor: pointer;
-    border: 1px solid #ffedd5;
-    transition: 0.2s;
+    cursor: var(--cursor-pointer);
+
+    /* Arka plan rengi değişimi yumuşak olsun */
+    transition: background-color 0.8s ease, color 0.8s ease, border-color 0.8s ease;
+
+    /* Yazının taşmasını önlemek için */
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
 
     &:hover {
-        background-color: #ffedd5;
+        opacity: 0.9;
     }
+}
+
+/* React'te 'key' değiştiğinde bu sınıf yeniden render olur ve animasyon çalışır */
+.promptTextAnim {
+    cursor: var(--cursor-pointer);
+    display: block;
+    animation: fadeInUp 0.7s ease forwards;
 }
 
 .inputActions {
@@ -282,7 +340,6 @@
 
 .micBtn {
     color: var(--color-text-soft);
-    cursor: pointer;
     transition: color 0.2s;
 
     &:hover {
