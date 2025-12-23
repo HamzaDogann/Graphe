@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./WelcomeScreen.module.scss";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
+import { useDatasetStore } from "@/store/useDatasetStore";
 
-// Prop tanımı ekliyoruz
-interface WelcomeScreenProps {
-  onFileUpload: (file: File) => void;
-}
 
-export default function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
-  // Intro (Hello Hamza) durumu
+
+export default function WelcomeScreen() {
+
+    const setFile = useDatasetStore((state) => state.setFile);
+
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
@@ -74,10 +74,10 @@ export default function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onFileUpload(file);
+      setFile(file); 
     }
   };
 

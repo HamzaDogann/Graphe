@@ -1,0 +1,258 @@
+/* --- Animation Properties --- */
+@property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes spinFade {
+    0% {
+        --angle: 0deg;
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    80% {
+        --angle: 288deg;
+        opacity: 1;
+    }
+
+    100% {
+        --angle: 360deg;
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Input Border Wrapper (Absolute Positioning) */
+.inputBorderWrapper {
+    position: absolute;
+    bottom: 40px;
+    left: 20px;
+    right: 20px;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 750px;
+    z-index: 50;
+    border-radius: 22px;
+    padding: 2.5px;
+    transition: all 1s ease, box-shadow 1s ease;
+
+    &.animating {
+        background: conic-gradient(from var(--angle), #EF4444, #22C55E, #5C85FF, #F59E0B, #EF4444);
+        animation: spinFade 1.3s linear infinite;
+        box-shadow: none;
+    }
+
+    &.static {
+        background: #D8DDFF;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+
+        &:focus-within {
+            box-shadow: 0 4px 25px rgba(92, 133, 255, 0.15);
+        }
+    }
+}
+
+.inputWrapper {
+    width: 100%;
+    height: auto;
+    background: white;
+    border-radius: 20px;
+    padding: 16px;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 90px;
+    justify-content: center;
+}
+
+.inputField {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #323039;
+    font-weight: 400;
+    margin-bottom: 12px;
+    background: transparent;
+    font-family: inherit;
+    height: auto;
+    min-height: 24px;
+    max-height: 160px;
+    resize: none;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::placeholder {
+        color: #94a3b8;
+    }
+}
+
+.inputFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    width: 100%;
+}
+
+/* Prompt Pill */
+.promptPill {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.8s ease, color 0.8s ease, border-color 0.8s ease;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.promptTextAnim {
+    cursor: pointer;
+    display: block;
+    animation: fadeInUp 0.7s ease forwards;
+}
+
+.inputActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.micBtn {
+    background: none;
+    border: none;
+    color: #797C84;
+    cursor: pointer;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+
+    &:hover {
+        color: #5C85FF;
+    }
+}
+
+.sendBtn {
+    background-color: #5C85FF;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #4A73ED;
+    }
+}
+
+/* Voice Mode Styles */
+.voiceContainer {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.waveWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 100%;
+}
+
+.waveBar {
+    width: 4px;
+    background-color: #5C85FF;
+    border-radius: 4px;
+    transition: height 0.05s ease;
+}
+
+.voiceControls {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.voiceStatus {
+    font-size: 0.9rem;
+    color: #797C84;
+}
+
+.voiceActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cancelBtn {
+    background: none;
+    border: none;
+    color: #EF4444;
+    cursor: pointer;
+    padding: 6px;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: scale(1.1);
+        color: #dc2626;
+    }
+}
+
+.confirmBtn {
+    background: none;
+    border: none;
+    color: #5C85FF;
+    cursor: pointer;
+    padding: 6px;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: scale(1.1);
+        color: #4A73ED;
+    }
+}

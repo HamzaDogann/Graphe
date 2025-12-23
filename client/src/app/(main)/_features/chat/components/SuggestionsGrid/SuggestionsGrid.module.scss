@@ -1,0 +1,53 @@
+.suggestionsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+}
+
+.suggestionCard {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+}
+
+/* Renkler */
+.bgBlue {
+    background-color: #e0f2fe;
+    color: #0ea5e9;
+}
+
+.bgOrange {
+    background-color: #ffedd5;
+    color: #f97316;
+}
+
+.bgGreen {
+    background-color: #dcfce7;
+    color: #22c55E;
+}
+
+.bgLime {
+    background-color: #ecfccb;
+    color: #84cc16;
+}
+
+.bgPurple {
+    background-color: #f3e8ff;
+    color: #a855f7;
+}
+
+.bgRed {
+    background-color: #fee2e2;
+    color: #ef4444;
+}

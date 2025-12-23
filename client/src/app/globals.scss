@@ -1,4 +1,3 @@
-// Theme Colors
 :root {
     --color-primary: #5C85FF;
     --color-primary-light: #E8EEFF;
@@ -47,13 +46,14 @@
     --cursor-grabbing: url('/cursors/HandDrag.svg') 12 12, grabbing;
 }
 
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    cursor: var(--cursor-default);
     font-family: var(--font-product-sans), sans-serif;
 }
+
 
 html,
 body {
@@ -63,8 +63,7 @@ body {
     cursor: var(--cursor-default);
 }
 
-// Custom Cursor Styles - Global
-// Pointer cursor for interactive elements and ALL their children
+
 a,
 button,
 [role="button"],
@@ -120,4 +119,15 @@ textarea,
 // Grab cursor (before dragging)
 [draggable="true"] {
     cursor: var(--cursor-pointer) !important;
+}
+
+/* Global text selection */
+::selection {
+    background: var(--color-primary);
+    color: white;
+}
+
+::-moz-selection {
+    background: var(--color-primary);
+    color: white;
 }
