@@ -1,43 +1,36 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
-import styles from "./WelcomeScreen.module.scss";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
 import { useDatasetStore } from "@/store/useDatasetStore";
+import { useUserStore } from "@/store/useUserStore";
 
-
+import styles from "./WelcomeScreen.module.scss";
 
 export default function WelcomeScreen() {
-
-    const setFile = useDatasetStore((state) => state.setFile);
+  const setFile = useDatasetStore((state) => state.setFile);
+  const { user } = useUserStore();
 
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
+  const [revealedStep, setRevealedStep] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [revealedStep, setRevealedStep] = useState(0);
+  // Kullanıcı adı yoksa varsayılan olarak "User" veya boş string
+  const username = user?.name?.split(" ")[0] || "User";
 
-  // Placeholder username
-  const username = "Hamza";
-
-  // 1. EFFEKT: Intro Animasyonu Yönetimi
   useEffect(() => {
-    // 1. Mount sonrası çok kısa bekle ve yazıyı görünür yap (Fade-in)
     const mountId = window.setTimeout(() => setIntroVisible(true), 50);
 
-    // 2. Yazı ekranda 1 saniye (1000ms) kalsın, sonra çıkış animasyonunu (leaving) başlat
     const leaveTimer = setTimeout(() => {
       setIntroLeaving(true);
-
-      // 3. Çıkış animasyonu CSS tarafında 600ms sürüyor.
-      // Bu süre bitince intro'yu DOM'dan kaldır ve ana içeriği başlat.
       const removeTimer = setTimeout(() => {
         setShowIntro(false);
       }, 600);
-
       return () => clearTimeout(removeTimer);
-    }, 1200); // 1.2 saniye bekle (okuma süresi)
+    }, 1200);
 
     return () => {
       clearTimeout(mountId);
@@ -45,17 +38,15 @@ export default function WelcomeScreen() {
     };
   }, []);
 
-  // 2. EFFEKT: Ana İçerik Sıralı Gösterimi (Intro bittikten sonra çalışır)
   useEffect(() => {
     if (showIntro) return;
 
-    // Sıralama: Logo -> Title -> Subtitle -> Cards -> Upload
     const delays = [
-      { step: 1, delay: 100 }, // Logo
-      { step: 2, delay: 300 }, // Title
-      { step: 3, delay: 500 }, // Subtitle
-      { step: 4, delay: 750 }, // Cards
-      { step: 5, delay: 1000 }, // Upload & Disclaimer
+      { step: 1, delay: 100 },
+      { step: 2, delay: 300 },
+      { step: 3, delay: 500 },
+      { step: 4, delay: 750 },
+      { step: 5, delay: 1000 },
     ];
 
     const timers: number[] = [];
@@ -74,16 +65,15 @@ export default function WelcomeScreen() {
     fileInputRef.current?.click();
   };
 
-   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setFile(file); 
+      setFile(file);
     }
   };
 
   return (
     <div className={styles.welcomeRoot}>
-      {/* Gizli Input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -100,19 +90,17 @@ export default function WelcomeScreen() {
             } ${introLeaving ? styles.greetingLeave : ""}`}
           >
             <span className={styles.coloredTextWrapper}>
-              <span className={styles.coloredTextGlow}>
-                {`Hello ${username}`}
-              </span>
+              <span
+                className={styles.coloredTextGlow}
+              >{`Hello ${username}`}</span>
               <span className={styles.coloredText}>{`Hello ${username}`}</span>
             </span>
           </h1>
         </div>
       )}
 
-      {/* --- ANA İÇERİK (Intro gidince görünür, ama elemanlar opacity 0 başlar) --- */}
       {!showIntro && (
         <div className={styles.welcomeMain}>
-          {/* Adım 1: Logo */}
           <div
             className={`${styles.welcomeCircle} ${
               revealedStep >= 1 ? styles.revealVisible : styles.revealHidden
@@ -120,7 +108,6 @@ export default function WelcomeScreen() {
           />
 
           <div className={styles.titleWrapper}>
-            {/* Adım 2: Title */}
             <h1
               className={`${styles.welcomeTitle} ${
                 revealedStep >= 2 ? styles.revealVisible : styles.revealHidden
@@ -130,7 +117,6 @@ export default function WelcomeScreen() {
             </h1>
           </div>
 
-          {/* Adım 3: Subtitle */}
           <p
             className={`${styles.welcomeSubtitle} ${
               revealedStep >= 3 ? styles.revealVisible : styles.revealHidden
@@ -140,7 +126,6 @@ export default function WelcomeScreen() {
             everything on your Canvas.
           </p>
 
-          {/* Adım 4: Cards */}
           <div
             className={`${styles.cardGrid} ${
               revealedStep >= 4 ? styles.revealVisible : styles.revealHidden

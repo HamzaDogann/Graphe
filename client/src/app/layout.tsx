@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.scss";
+import AuthProvider from "./providers/AuthProvider";
+import SessionSync from "./_components/SessionSync";
 
 const productSans = localFont({
   src: [
@@ -51,7 +53,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={productSans.variable}>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <SessionSync />
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
