@@ -1,45 +1,9 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.scss";
+import { productSans } from "@/fonts"; //
 import AuthProvider from "./providers/AuthProvider";
 import SessionSync from "./_components/SessionSync";
-
-const productSans = localFont({
-  src: [
-    {
-      path: "../fonts/ProductSans-Regular.ttf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../fonts/ProductSans-Italic.ttf",
-      weight: "400",
-      style: "italic",
-    },
-    {
-      path: "../fonts/ProductSans-Bold.ttf",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "../fonts/ProductSans-Medium.ttf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../fonts/ProductSans-Thin.ttf",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../fonts/ProductSans-BoldItalic.ttf",
-      weight: "700",
-      style: "italic",
-    },
-  ],
-  variable: "--font-product-sans",
-  display: "swap",
-});
+import { GlobalLoader } from "./_components/GlobalLoader";
+import "./globals.scss";
 
 export const metadata: Metadata = {
   title: "Graphe",
@@ -53,8 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={productSans.variable}>
-      <body>
+      <body suppressHydrationWarning={true}>
         <AuthProvider>
+          <GlobalLoader />
           <SessionSync />
           {children}
         </AuthProvider>

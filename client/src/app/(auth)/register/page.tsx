@@ -1,42 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // Yönlendirme için
-import axios from "axios"; // Fetch yerine axios daha temiz (npm install axios)
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Logo } from "../_components/Logo";
 import { InputField } from "../_components/InputField";
 import { Button } from "../_components/Button";
 import styles from "./register.module.scss";
+import { useLoaderStore } from "@/store/useLoaderStore";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const loader = useLoaderStore();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setError("");
+    loader.show();
 
     try {
-      // Backend API'mize istek atıyoruz
       await axios.post("/api/register", {
         name,
         email,
         password,
       });
 
-      router.push("/login"); // Login'e yönlendir
-    } catch (error: any) {
-      if (error.response?.status === 409) {
+      router.push("/login");
+
+      loader.hide();
+    } catch (err: any) {
+      loader.hide();
+
+      if (err.response?.status === 409) {
+        setError("This email is already in use.");
       } else {
+        setError("Something went wrong. Please try again.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -79,8 +86,23 @@ export default function RegisterPage() {
           }
         />
 
-        <Button type="submit" disabled={loading}>
-          {loading ? <Loader2 className="animate-spin" /> : "Create Account"}
+        {/* Hata Mesajı Alanı */}
+        {error && (
+          <div
+            style={{
+              color: "#ef4444",
+              fontSize: "0.875rem",
+              marginTop: "-8px",
+              marginBottom: "8px",
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Button artık local loading beklemiyor, global loader çalışırken disable olabilir */}
+        <Button type="submit" disabled={loader.isLoading}>
+          Create Account
         </Button>
       </form>
 

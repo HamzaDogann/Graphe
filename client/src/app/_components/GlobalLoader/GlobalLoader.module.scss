@@ -1,0 +1,72 @@
+/* Arka planı kaplayan katman */
+.loaderBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Loader Kapsayıcı */
+.customLoader {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 1. PIE CHART (Sabit Hızla Dönen) */
+.pie {
+    position: absolute;
+    width: 55px;
+    height: auto;
+    z-index: 1;
+    animation: spin 0.8s linear infinite;
+}
+
+/* 2. BRUSH (Salınan) */
+.brush {
+    position: absolute;
+    width: 60px;
+    height: auto;
+    z-index: 2;
+    top: 22px;
+    right: -2px;
+
+    /* Fırça boyama hareketi yapmaya devam etsin */
+    animation: float 2s ease-in-out infinite;
+}
+
+/* --- ANIMASYONLAR --- */
+
+/* Standart Dönme */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Salınım */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) translateX(0);
+    }
+
+    50% {
+        transform: translateY(-12px) translateX(4px);
+    }
+}
