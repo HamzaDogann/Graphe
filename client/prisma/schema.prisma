@@ -64,3 +64,13 @@ model Canvas {
   name   String
   user   User   @relation(fields: [userId], references: [id])
 }
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+}

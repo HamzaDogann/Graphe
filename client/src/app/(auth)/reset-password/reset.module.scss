@@ -1,4 +1,4 @@
-.forgotPage {
+.resetPage {
     width: 100%;
 }
 
@@ -29,9 +29,44 @@
     margin-top: -10px;
 }
 
-/* Back Link (Soft Button Style) */
+.eyeButton {
+    background: none;
+    border: none;
+    color: #A0A3AB;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+
+    &:hover {
+        color: #797C84;
+    }
+}
+
+/* Başarı ekranındaki MAVİ buton */
+.successButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 24px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #5C85FF;
+    color: white;
+    font-weight: 500;
+    text-decoration: none;
+    transition: 0.2s;
+
+    &:hover {
+        background-color: #4A73ED;
+    }
+}
+
+/* Form altındaki GRİ ve SOLA hizalı buton */
 .backLink {
     display: inline-flex;
+    /* Sola yaslanması için */
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -51,8 +86,6 @@
 
     &:hover {
         background-color: #E8E9ED;
-        /* Hover'da biraz koyulaşsın */
         color: #323039;
-        /* Text koyulaşsın */
     }
 }

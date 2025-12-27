@@ -2,19 +2,34 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import axios from "axios";
+import { ArrowLeft } from "lucide-react"; // Geri ikonu
 import { Logo } from "../_components/Logo";
 import { InputField } from "../_components/InputField";
 import { Button } from "../_components/Button";
 import styles from "./forgot.module.scss";
+import { useLoaderStore } from "@/store/useLoaderStore";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loader = useLoaderStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Forgot password:", { email });
-    setSubmitted(true);
+    loader.show();
+    setError("");
+
+    try {
+      await axios.post("/api/forgot-password", { email });
+      setSubmitted(true);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      loader.hide();
+    }
   };
 
   if (submitted) {
@@ -26,7 +41,8 @@ export default function ForgotPasswordPage() {
           We&apos;ve sent a password reset link to <strong>{email}</strong>
         </p>
         <Link href="/login" className={styles.backLink}>
-          ← Back to login
+          <ArrowLeft size={16} />
+          Back to login
         </Link>
       </div>
     );
@@ -47,14 +63,18 @@ export default function ForgotPasswordPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder=""
+          placeholder="Enter your email"
+          required
         />
+
+        {error && <div className={styles.errorMessage}>{error}</div>}
 
         <Button type="submit">Reset password</Button>
       </form>
 
       <Link href="/login" className={styles.backLink}>
-        ← Back to login
+        <ArrowLeft size={16} />
+        Back to login
       </Link>
     </div>
   );

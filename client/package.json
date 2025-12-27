@@ -11,6 +11,8 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^6.19.1",
+    "@react-email/components": "^1.0.2",
+    "@react-email/render": "^1.4.0",
     "@tanstack/react-virtual": "^3.13.13",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
@@ -23,6 +25,7 @@
     "prisma": "^6.19.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "resend": "^6.6.0",
     "sass": "^1.94.2",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.9"
