@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import styles from "./SidebarUser.module.scss";
 import { useUserStore } from "@/store/useUserStore";
+import { SettingsModal } from "@/app/_components";
 
 interface SidebarUserProps {
   collapsed: boolean;
@@ -14,6 +15,7 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
   const { user, logout } = useUserStore();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +32,11 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
     logout();
+  };
+
+  const handleSettingsClick = () => {
+    setIsMenuOpen(false);
+    setIsSettingsOpen(true);
   };
 
   if (!user) return null;
@@ -52,7 +59,7 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
             <Sparkles size={18} />
             <span>Upgrade to Pro</span>
           </button>
-          <button className={styles.menuItem}>
+          <button className={styles.menuItem} onClick={handleSettingsClick}>
             <Settings size={18} />
             <span>Settings</span>
           </button>
@@ -66,6 +73,12 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
           </button>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
 
       {/* User Button */}
       <button

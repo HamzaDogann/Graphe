@@ -1,0 +1,74 @@
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.loadingContainer {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    width: 100%;
+}
+
+.logoWrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #89a3de 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loadingBars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    max-width: 420px;
+    padding-top: 8px;
+}
+
+.bar {
+    height: 10px;
+    border-radius: 7px;
+    background: linear-gradient(90deg,
+            #e8ebf2 0%,
+            #e2e7ff 25%,
+            #cbd9ff 50%,
+            #97aaff 75%,
+            #e8ebf2 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+
+    &:nth-child(1) {
+        animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+        animation-delay: 0.15s;
+    }
+
+    &:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+}

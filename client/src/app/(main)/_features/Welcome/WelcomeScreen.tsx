@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
 import { useDatasetStore } from "@/store/useDatasetStore";
 import { useUserStore } from "@/store/useUserStore";
+import { ProcessingLoader } from "@/app/_components";
 
 import styles from "./WelcomeScreen.module.scss";
 
@@ -15,6 +16,7 @@ export default function WelcomeScreen() {
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [revealedStep, setRevealedStep] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,9 +70,19 @@ export default function WelcomeScreen() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       setFile(file);
     }
   };
+
+  // Show loading overlay when uploading
+  if (isUploading) {
+    return (
+      <div className={styles.welcomeRoot}>
+        <ProcessingLoader text="Processing data..." size="large" />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.welcomeRoot}>

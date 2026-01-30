@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Sidebar } from "../_components/Sidebar";
-import { Topbar } from "../_components/Topbar";
-import styles from "../dashboard.module.scss";
+import { Sidebar } from "@/app/_components/Sidebar";
+import { Topbar } from "@/app/_components/Topbar";
+import styles from "@/app/dashboard.module.scss";
 
-interface MainLayoutProps {
+interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {

@@ -1,0 +1,139 @@
+.responseContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logoWrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #323039;
+}
+
+.description {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0;
+    padding-left: 48px;
+    padding-right: 60px;
+}
+
+.chartSection {
+    display: flex;
+    gap: 12px;
+    padding-left: 48px;
+    align-items: flex-start;
+    max-width: 100%;
+}
+
+.chartContainer {
+    flex: 1;
+    min-width: 0;
+    background: #f8f9fc;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e8ebf2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.chartPlaceholder {
+    width: 180px;
+    height: 180px;
+    max-width: 100%;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    justify-content: center;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legendColor {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.legendLabel {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.actionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.actionBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid #e8ebf2;
+    background: white;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f8f9fc;
+        color: #5c85ff;
+        border-color: #5c85ff;
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .description {
+        padding-left: 0;
+    }
+
+    .chartSection {
+        padding-left: 0;
+        flex-direction: column;
+    }
+
+    .actionButtons {
+        flex-direction: row;
+        justify-content: center;
+        width: 100%;
+    }
+}

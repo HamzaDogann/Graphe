@@ -39,7 +39,7 @@ export default function LoginPage() {
     }
 
     if (callback?.ok && !callback?.error) {
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
       loader.hide();
     }
@@ -48,7 +48,7 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     // Google'a giderken de loader gösterelim
     loader.show();
-    signIn("google", { callbackUrl: "/" });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (

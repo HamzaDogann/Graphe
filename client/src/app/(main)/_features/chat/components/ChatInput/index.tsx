@@ -7,7 +7,11 @@ import { VoiceVisualizer } from "./VoiceVisualizer";
 import { PromptCarousel } from "./PromptCarousel";
 import styles from "./ChatInput.module.scss";
 
-export const ChatInput = () => {
+interface ChatInputProps {
+  onSendMessage?: (message: string) => void;
+}
+
+export const ChatInput = ({ onSendMessage }: ChatInputProps) => {
   const [inputValue, setInputValue] = useState("");
   const [isAnimating, setIsAnimating] = useState(true); // Border animasyonu için
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,6 +61,26 @@ export const ChatInput = () => {
     setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
+  // Handle send message
+  const handleSend = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && onSendMessage) {
+      onSendMessage(trimmed);
+      setInputValue("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    }
+  };
+
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <div
       className={`${styles.inputBorderWrapper} ${
@@ -74,9 +98,7 @@ export const ChatInput = () => {
             rows={1}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && !e.shiftKey && e.preventDefault()
-            }
+            onKeyDown={handleKeyDown}
           />
         )}
 
@@ -92,7 +114,7 @@ export const ChatInput = () => {
                 <button className={styles.micBtn} onClick={startListening}>
                   <Mic size={20} />
                 </button>
-                <button className={styles.sendBtn}>
+                <button className={styles.sendBtn} onClick={handleSend}>
                   <ArrowUp size={18} />
                 </button>
               </div>

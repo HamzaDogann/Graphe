@@ -1,28 +1,17 @@
 /* --- Animation Properties --- */
-@property --angle {
+@property --glow-deg {
     syntax: "<angle>";
+    inherits: true;
     initial-value: 0deg;
-    inherits: false;
 }
 
-@keyframes spinFade {
+@keyframes glowSpin {
     0% {
-        --angle: 0deg;
-        opacity: 0;
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    80% {
-        --angle: 288deg;
-        opacity: 1;
+        --glow-deg: 0deg;
     }
 
     100% {
-        --angle: 360deg;
-        opacity: 0;
+        --glow-deg: 360deg;
     }
 }
 
@@ -38,24 +27,18 @@
     }
 }
 
-/* Input Border Wrapper (Absolute Positioning) */
+/* Input Border Wrapper */
 .inputBorderWrapper {
-    position: absolute;
-    bottom: 40px;
-    left: 20px;
-    right: 20px;
-    margin: 0 auto;
     width: 100%;
     max-width: 750px;
-    z-index: 50;
     border-radius: 22px;
     padding: 2.5px;
-    transition: all 1s ease, box-shadow 1s ease;
+    transition: all 0.5s ease, box-shadow 0.5s ease;
 
     &.animating {
-        background: conic-gradient(from var(--angle), #EF4444, #22C55E, #5C85FF, #F59E0B, #EF4444);
-        animation: spinFade 1.3s linear infinite;
-        box-shadow: none;
+        background: conic-gradient(from var(--glow-deg), #EF4444, #F59E0B, #22C55E, #5C85FF, #A855F7, #EF4444);
+        animation: glowSpin 2.5s linear forwards;
+        box-shadow: 0 0 20px rgba(92, 133, 255, 0.3), 0 0 40px rgba(168, 85, 247, 0.2);
     }
 
     &.static {

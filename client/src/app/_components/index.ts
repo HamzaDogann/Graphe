@@ -10,3 +10,11 @@ export { NewChartButton } from "./Sidebar";
 
 // Topbar Components
 export { Topbar } from "./Topbar";
+
+// Loader Components
+export { ProcessingLoader } from "./ProcessingLoader";
+
+// Modal Components
+export { Modal } from "./Modal";
+export type { ModalProps } from "./Modal";
+export { SettingsModal } from "./SettingsModal";
