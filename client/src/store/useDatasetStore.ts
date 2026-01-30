@@ -9,7 +9,7 @@ interface DatasetState {
   setFile: (file: File | null) => void;
   setParsedData: (data: ParsedData | null) => void;
   setIsLoading: (loading: boolean) => void;
-  reset: () => void; // Veriyi sıfırlayan fonksiyon
+  reset: () => void; 
 }
 
 export const useDatasetStore = create<DatasetState>((set) => ({
