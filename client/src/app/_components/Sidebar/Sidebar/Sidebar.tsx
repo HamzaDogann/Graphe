@@ -59,7 +59,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <SidebarNavItem
               icon={<FileChartPie size={20} />}
               label="Canvases"
-              href="/canvases"
+              href="/dashboard/canvases"
               collapsed={true}
               variant="canvases"
             />
@@ -95,7 +95,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <SidebarNavItem
               icon={<FileChartPie size={20} />}
               label="Canvases"
-              href="/canvases"
+              href="/dashboard/canvases"
               collapsed={false}
               variant="canvases"
             />
@@ -113,7 +113,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* User Profile */}
-      <SidebarUser user={mockUser} collapsed={collapsed} />
+      <SidebarUser collapsed={collapsed} />
     </aside>
   );
 }

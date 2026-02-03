@@ -3,9 +3,11 @@
 import { Settings, LogOut, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import styles from "./SidebarUser.module.scss";
 import { useUserStore } from "@/store/useUserStore";
 import { SettingsModal } from "@/app/_components";
+import { dropdownFromBottomLeft, transformOrigins } from "@/lib/animations";
 
 interface SidebarUserProps {
   collapsed: boolean;
@@ -53,26 +55,35 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
 
   return (
     <div className={styles.userContainer} ref={menuRef}>
-      {isMenuOpen && (
-        <div className={styles.dropdownMenu}>
-          <button className={styles.menuItem}>
-            <Sparkles size={18} />
-            <span>Upgrade to Pro</span>
-          </button>
-          <button className={styles.menuItem} onClick={handleSettingsClick}>
-            <Settings size={18} />
-            <span>Settings</span>
-          </button>
-          <div className={styles.menuDivider} />
-          <button
-            className={`${styles.menuItem} ${styles.danger}`}
-            onClick={handleLogout}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            className={styles.dropdownMenu}
+            variants={dropdownFromBottomLeft}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{ transformOrigin: transformOrigins.bottomLeft }}
           >
-            <LogOut size={18} />
-            <span>Log out</span>
-          </button>
-        </div>
-      )}
+            <button className={styles.menuItem}>
+              <Sparkles size={18} />
+              <span>Upgrade to Pro</span>
+            </button>
+            <button className={styles.menuItem} onClick={handleSettingsClick}>
+              <Settings size={18} />
+              <span>Settings</span>
+            </button>
+            <div className={styles.menuDivider} />
+            <button
+              className={`${styles.menuItem} ${styles.danger}`}
+              onClick={handleLogout}
+            >
+              <LogOut size={18} />
+              <span>Log out</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Settings Modal */}
       <SettingsModal

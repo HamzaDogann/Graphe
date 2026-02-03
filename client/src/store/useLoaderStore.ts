@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 
 interface LoaderState {
   isLoading: boolean;
@@ -9,31 +10,36 @@ interface LoaderState {
 
 const MIN_DURATION = 800; 
 
-export const useLoaderStore = create<LoaderState>((set, get) => ({
-  isLoading: false,
-  startTime: 0,
+export const useLoaderStore = create<LoaderState>()(
+  devtools(
+    (set, get) => ({
+      isLoading: false,
+      startTime: 0,
 
-  show: () => {
-    if (get().isLoading) return;
-    
-    set({ 
-      isLoading: true, 
-      startTime: Date.now() 
-    });
-  },
+      show: () => {
+        if (get().isLoading) return;
+        
+        set({ 
+          isLoading: true, 
+          startTime: Date.now() 
+        });
+      },
 
-  hide: () => {
-    const { startTime } = get();
-    const now = Date.now();
-    const elapsed = now - startTime;
+      hide: () => {
+        const { startTime } = get();
+        const now = Date.now();
+        const elapsed = now - startTime;
 
-    if (elapsed < MIN_DURATION) {
-      const remaining = MIN_DURATION - elapsed;
-      setTimeout(() => {
-        set({ isLoading: false });
-      }, remaining);
-    } else {
-      set({ isLoading: false });
-    }
-  },
-}));
+        if (elapsed < MIN_DURATION) {
+          const remaining = MIN_DURATION - elapsed;
+          setTimeout(() => {
+            set({ isLoading: false });
+          }, remaining);
+        } else {
+          set({ isLoading: false });
+        }
+      },
+    }),
+    { name: "LoaderStore" }
+  )
+);

@@ -6,6 +6,7 @@
     border-radius: 8px;
     color: var(--color-text-soft);
     text-decoration: none;
+    font-family: var(--font-product-sans);
     font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -68,6 +69,7 @@
             background: #D2FAF1;
 
             .icon {
+                background: transparent;
                 color: #14A684;
             }
         }

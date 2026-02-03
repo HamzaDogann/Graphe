@@ -21,7 +21,11 @@ export function SidebarNavItem({
   variant = "default",
 }: SidebarNavItemProps) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+
+  // For canvases variant, check if pathname includes "canvases"
+  // For others, exact match
+  const isActive =
+    variant === "canvases" ? pathname?.includes("canvases") : pathname === href;
 
   const variantClass = variant === "canvases" ? styles.canvases : "";
 

@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useDatasetStore } from "@/store/useDatasetStore";
 
 // Shared loading component for dynamic imports
 const DynamicLoader = () => (
@@ -42,16 +41,6 @@ const WelcomeScreen = dynamic(
   },
 );
 
-const ChatInterface = dynamic(
-  () => import("@/app/(main)/_features/chat/ChatInterface"),
-  {
-    loading: () => <DynamicLoader />,
-    ssr: false,
-  },
-);
-
 export default function DashboardPage() {
-  const file = useDatasetStore((state) => state.file);
-
-  return <>{!file ? <WelcomeScreen /> : <ChatInterface />}</>;
+  return <WelcomeScreen />;
 }

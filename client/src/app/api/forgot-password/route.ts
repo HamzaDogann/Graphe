@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { Resend } from "resend";
 import crypto from "crypto";
-import { render } from "@react-email/render"; // <-- YENİ IMPORT
+import { render } from "@react-email/render"; 
 import { ResetPasswordEmail } from "../../_components/emails/ResetPasswordEmail";
 
 const prisma = new PrismaClient();

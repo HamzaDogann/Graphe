@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
 import { useDatasetStore } from "@/store/useDatasetStore";
 import { useUserStore } from "@/store/useUserStore";
+import { useChatStore } from "@/store/useChatStore";
+import { generateChatId } from "@/lib/generateId";
 import { ProcessingLoader } from "@/app/_components";
 
 import styles from "./WelcomeScreen.module.scss";
@@ -11,6 +14,8 @@ import styles from "./WelcomeScreen.module.scss";
 export default function WelcomeScreen() {
   const setFile = useDatasetStore((state) => state.setFile);
   const { user } = useUserStore();
+  const { addChat } = useChatStore();
+  const router = useRouter();
 
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
@@ -72,6 +77,19 @@ export default function WelcomeScreen() {
     if (file) {
       setIsUploading(true);
       setFile(file);
+
+      // Create a new chat
+      const newChat = {
+        id: generateChatId(),
+        name: "", // Empty - will show "New Chat" in Topbar
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      addChat(newChat);
+
+      // Navigate to the new chat page
+      router.push(`/dashboard/chats/${newChat.id}`);
     }
   };
 
@@ -79,7 +97,7 @@ export default function WelcomeScreen() {
   if (isUploading) {
     return (
       <div className={styles.welcomeRoot}>
-        <ProcessingLoader text="Processing data..." size="large" />
+        <ProcessingLoader text="Processing data..." size="medium" />
       </div>
     );
   }

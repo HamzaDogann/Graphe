@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 import { ParsedData } from "@/types/dataset";
 
 interface DatasetState {
@@ -12,7 +13,9 @@ interface DatasetState {
   reset: () => void; 
 }
 
-export const useDatasetStore = create<DatasetState>((set) => ({
+export const useDatasetStore = create<DatasetState>()(
+  devtools(
+    (set) => ({
   file: null,
   parsedData: null,
   isLoading: false,
@@ -23,4 +26,7 @@ export const useDatasetStore = create<DatasetState>((set) => ({
   
   // Tüm state'i başlangıç durumuna getirir
   reset: () => set({ file: null, parsedData: null, isLoading: false }),
-}));
+    }),
+    { name: "DatasetStore" }
+  )
+);
