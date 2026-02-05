@@ -1,0 +1,81 @@
+.toolbarContainer {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+}
+
+.toolbar {
+    pointer-events: auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolGroup,
+.zoomGroup {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolButton {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: #f8fafc;
+        color: #3b82f6;
+    }
+
+    &.active {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.deleteButton {
+    &:hover:not(:disabled) {
+        background: #fef2f2;
+        color: #ef4444;
+        border-color: #fecaca;
+    }
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background: #e2e8f0;
+    margin: 0 4px;
+}
+
+.zoomDisplay {
+    min-width: 48px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    user-select: none;
+}

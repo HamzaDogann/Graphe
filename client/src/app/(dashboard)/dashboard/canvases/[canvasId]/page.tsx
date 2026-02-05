@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { isValidCanvasId } from "@/lib/generateId";
-import { LayoutGrid, Calendar, Hash, FileText, ArrowLeft } from "lucide-react";
+import { Hash, ArrowLeft, LayoutGrid } from "lucide-react";
 import Link from "next/link";
+import { CanvasWorkspace, PropertiesPanel, CanvasToolbar } from "./components";
 import styles from "./canvas.module.scss";
 
 export default function CanvasDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const canvasId = params.canvasId as string;
 
-  const { canvases, activeCanvas, setActiveCanvas } = useCanvasStore();
+  const { canvases, setActiveCanvas } = useCanvasStore();
 
   useEffect(() => {
     // Find and set the active canvas
@@ -60,64 +60,18 @@ export default function CanvasDetailPage() {
     );
   }
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className={styles.canvasPage}>
-      {/* Back Link */}
-      <Link href="/dashboard/canvases" className={styles.backLink}>
-        <ArrowLeft size={18} />
-        Back to Canvases
-      </Link>
+      {/* Canvas Editor Layout */}
+      <div className={styles.editorLayout}>
+        {/* Canvas Workspace (Left) */}
+        <CanvasWorkspace />
 
-      {/* Canvas Info Card */}
-      <div className={styles.infoCard}>
-        <div className={styles.cardHeader}>
-          <div className={styles.iconWrapper}>
-            <LayoutGrid size={28} />
-          </div>
-          <div className={styles.headerText}>
-            <h1 className={styles.canvasName}>{canvas.name}</h1>
-            <span className={styles.canvasId}>
-              <Hash size={14} />
-              {canvas.id}
-            </span>
-          </div>
-        </div>
+        {/* Properties Panel (Right) */}
+        <PropertiesPanel />
 
-        {canvas.description && (
-          <div className={styles.descriptionSection}>
-            <div className={styles.sectionLabel}>
-              <FileText size={16} />
-              Description
-            </div>
-            <p className={styles.description}>{canvas.description}</p>
-          </div>
-        )}
-
-        <div className={styles.metaSection}>
-          <div className={styles.metaItem}>
-            <Calendar size={16} />
-            <span>Created: {formatDate(canvas.createdAt)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Canvas Workspace Area - Placeholder for future charts */}
-      <div className={styles.workspaceArea}>
-        <div className={styles.workspacePlaceholder}>
-          <LayoutGrid size={32} />
-          <p>Canvas workspace - Charts will appear here</p>
-        </div>
+        {/* Bottom Toolbar - Fixed */}
+        <CanvasToolbar />
       </div>
     </div>
   );
