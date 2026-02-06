@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
-import { PanelRightOpen, PanelRightClose } from "lucide-react";
+import { useEffect, useRef, useCallback } from "react";
+import { PanelRightOpen } from "lucide-react";
 import { useCanvasEditorStore } from "@/store/useCanvasEditorStore";
-import { ChartFactory } from "@/components/ChartFactory";
-import GridLayout from "react-grid-layout";
-import "react-grid-layout/css/styles.css";
+import { CanvasElement } from "./components";
 import styles from "./CanvasWorkspace.module.scss";
+
+// Canvas padding - elements cannot be placed closer than this to edges
+const CANVAS_PADDING = 30;
 
 export const CanvasWorkspace = () => {
   const {
@@ -15,16 +16,26 @@ export const CanvasWorkspace = () => {
     setSelectedElement,
     isPanelOpen,
     togglePanel,
-    updateLayouts,
     zoom,
     removeElement,
+    updateElementPosition,
+    updateElementSize,
+    updateElement,
   } = useCanvasEditorStore();
+
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Keyboard event handler for Delete/Backspace
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === "Delete" || e.key === "Backspace") && selectedElementId) {
-        // Prevent default backspace navigation
+        // Don't delete if user is typing in an input
+        if (
+          (e.target as HTMLElement).tagName === "INPUT" ||
+          (e.target as HTMLElement).tagName === "TEXTAREA"
+        ) {
+          return;
+        }
         e.preventDefault();
         removeElement(selectedElementId);
       }
@@ -34,24 +45,51 @@ export const CanvasWorkspace = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedElementId, removeElement]);
 
-  // Convert elements to react-grid-layout format
-  const layout = elements.map((el) => ({
-    i: el.id,
-    x: el.x,
-    y: el.y,
-    w: el.w,
-    h: el.h,
-    minW: 2, // Minimum 2 columns
-    minH: 2, // Minimum 2 rows
-  }));
+  // Memoized callbacks for CanvasElement
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedElement(id);
+    },
+    [setSelectedElement],
+  );
 
-  const handleLayoutChange = (newLayout: any[]) => {
-    updateLayouts(newLayout);
-  };
+  const handlePositionChange = useCallback(
+    (id: string, x: number, y: number) => {
+      updateElementPosition(id, x, y);
+    },
+    [updateElementPosition],
+  );
+
+  const handleSizeChange = useCallback(
+    (id: string, width: number, height: number) => {
+      updateElementSize(id, width, height);
+    },
+    [updateElementSize],
+  );
+
+  // Handle text content change from inline editing
+  const handleTextChange = useCallback(
+    (id: string, text: string) => {
+      updateElement(id, { data: text });
+    },
+    [updateElement],
+  );
+
+  // Click on canvas to deselect
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === canvasRef.current) {
+        setSelectedElement(null);
+      }
+    },
+    [setSelectedElement],
+  );
+
+  // Get canvas ref for export (exposed via store or context if needed)
+  const getCanvasRef = useCallback(() => canvasRef, []);
 
   return (
     <div className={styles.workspaceContainer}>
-      {/* Panel Toggle Button - Top Right */}
       {!isPanelOpen && (
         <button
           className={styles.panelToggleButton}
@@ -71,62 +109,27 @@ export const CanvasWorkspace = () => {
             transformOrigin: "top center",
           }}
         >
-          <div className={styles.canvas}>
-            <GridLayout
-              className={styles.gridLayout}
-              layout={layout}
-              cols={12}
-              rowHeight={60}
-              width={714} // A4 width (794px) - padding (40px * 2)
-              onLayoutChange={handleLayoutChange}
-              draggableHandle={`.${styles.dragHandle}`}
-              compactType={null} // Disable auto-compact
-              preventCollision={false}
-            >
-              {elements.map((element) => (
-                <div
-                  key={element.id}
-                  className={`${styles.element} ${
-                    selectedElementId === element.id ? styles.selected : ""
-                  }`}
-                  onClick={() => setSelectedElement(element.id)}
-                >
-                  {/* Drag Handle */}
-                  <div className={styles.dragHandle}>
-                    <div className={styles.dragIcon}>⋮⋮</div>
-                  </div>
+          <div
+            ref={canvasRef}
+            className={styles.canvas}
+            onClick={handleCanvasClick}
+            data-canvas-export="true"
+          >
+            {/* Render elements using memoized CanvasElement component */}
+            {elements.map((element) => (
+              <CanvasElement
+                key={element.id}
+                element={element}
+                isSelected={selectedElementId === element.id}
+                zoom={zoom}
+                onSelect={handleSelect}
+                onPositionChange={handlePositionChange}
+                onSizeChange={handleSizeChange}
+                onTextChange={handleTextChange}
+                canvasPadding={CANVAS_PADDING}
+              />
+            ))}
 
-                  {/* Element Content */}
-                  <div className={styles.elementContent}>
-                    {element.type === "chart" && element.chartConfig ? (
-                      <ChartFactory config={element.chartConfig} />
-                    ) : element.type === "chart" ? (
-                      <div className={styles.chartPlaceholder}>
-                        <span>Chart</span>
-                        <p className={styles.chartTitle}>
-                          Select this element and use AI to generate a chart
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {element.type === "text" && (
-                      <div
-                        className={styles.textElement}
-                        style={{
-                          fontSize: element.style?.fontSize || 16,
-                          fontFamily: element.style?.fontFamily || "inherit",
-                          color: element.style?.color || "#000",
-                        }}
-                      >
-                        {element.data || "Text Element"}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </GridLayout>
-
-            {/* Empty state */}
             {elements.length === 0 && (
               <div className={styles.emptyState}>
                 <p>
@@ -140,3 +143,6 @@ export const CanvasWorkspace = () => {
     </div>
   );
 };
+
+// Export canvas ref getter for other components (like export feature)
+export { CANVAS_PADDING };

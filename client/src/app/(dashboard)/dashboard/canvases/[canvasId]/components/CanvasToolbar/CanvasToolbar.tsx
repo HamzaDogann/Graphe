@@ -28,13 +28,30 @@ export const CanvasToolbar = () => {
   } = useCanvasEditorStore();
 
   const handleAddChart = () => {
+    // Canvas dimensions (A4 at 96 DPI minus padding)
+    const CANVAS_WIDTH = 794 - 80; // 794px - 40px padding on each side
+    const CANVAS_HEIGHT = 1123 - 80;
+    const CHART_WIDTH = 350;
+    const CHART_HEIGHT = 200;
+
+    // Calculate center position
+    const centerX = (CANVAS_WIDTH - CHART_WIDTH) / 2;
+    const centerY = (CANVAS_HEIGHT - CHART_HEIGHT) / 2;
+
+    // Calculate next zIndex (highest + 1)
+    const maxZIndex =
+      elements.length > 0
+        ? Math.max(...elements.map((el) => el.zIndex || 0))
+        : 0;
+
     const newChart = {
       id: `chart-${Date.now()}`,
       type: "chart" as const,
-      x: 0,
-      y: elements.length * 4, // Stack vertically
-      w: 6,
-      h: 4,
+      x: centerX,
+      y: centerY,
+      width: CHART_WIDTH,
+      height: CHART_HEIGHT,
+      zIndex: maxZIndex + 1,
       chartConfig: {
         chartType: "bar" as const,
         title: "New Chart",
@@ -47,17 +64,38 @@ export const CanvasToolbar = () => {
   };
 
   const handleAddText = () => {
+    // Canvas dimensions (A4 at 96 DPI minus padding)
+    const CANVAS_WIDTH = 794 - 80; // 794px - 40px padding on each side
+    const CANVAS_HEIGHT = 1123 - 80;
+    const TEXT_WIDTH = 120;
+    const TEXT_HEIGHT = 32;
+
+    // Calculate center position
+    const centerX = (CANVAS_WIDTH - TEXT_WIDTH) / 2;
+    const centerY = (CANVAS_HEIGHT - TEXT_HEIGHT) / 2;
+
+    // Calculate next zIndex (highest + 1)
+    const maxZIndex =
+      elements.length > 0
+        ? Math.max(...elements.map((el) => el.zIndex || 0))
+        : 0;
+
     const newText = {
       id: `text-${Date.now()}`,
       type: "text" as const,
-      x: 6,
-      y: elements.length * 4,
-      w: 6,
-      h: 2,
-      data: "New Text Element",
+      x: centerX,
+      y: centerY,
+      width: TEXT_WIDTH,
+      height: TEXT_HEIGHT,
+      zIndex: maxZIndex + 1,
+      data: "Text",
       style: {
         fontSize: 16,
         color: "#000000",
+        textType: "paragraph" as const,
+        textAlign: "left" as const,
+        fontWeight: "normal" as const,
+        fontStyle: "normal" as const,
       },
     };
     addElement(newText);

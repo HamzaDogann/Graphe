@@ -1,15 +1,18 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import type { Layout } from "react-grid-layout";
+
+export type TextType = "paragraph" | "heading1" | "heading2" | "heading3";
+export type TextAlign = "left" | "center" | "right";
 
 export type CanvasElement = {
   id: string;
   type: "chart" | "text";
-  // Grid Layout coordinates (x, y, w, h)
-  x: number; // Column position (0-11)
-  y: number; // Row position
-  w: number; // Width in columns
-  h: number; // Height in rows
+  // Pixel-based coordinates for free positioning
+  x: number; // X position in pixels
+  y: number; // Y position in pixels
+  width: number; // Width in pixels (auto for text)
+  height: number; // Height in pixels (auto for text)
+  zIndex: number; // Stacking order
   // Content data
   data?: any; // Chart configuration or text content
   style?: {
@@ -17,6 +20,10 @@ export type CanvasElement = {
     fontFamily?: string;
     color?: string;
     backgroundColor?: string;
+    textAlign?: TextAlign;
+    fontWeight?: "normal" | "bold";
+    fontStyle?: "normal" | "italic";
+    textType?: TextType;
   };
   // Chart specific config (if type is "chart")
   chartConfig?: {
@@ -46,16 +53,21 @@ interface CanvasEditorState {
   // Zoom state
   zoom: number;
   
+  // Dragging state
+  isDragging: boolean;
+  isResizing: boolean;
+  
   // Actions
   addElement: (element: CanvasElement) => void;
   removeElement: (id: string) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  updateElementLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void;
+  updateElementPosition: (id: string, x: number, y: number) => void;
+  updateElementSize: (id: string, width: number, height: number) => void;
   setSelectedElement: (id: string | null) => void;
   togglePanel: () => void;
   clearElements: () => void;
-  // Batch update layouts (for react-grid-layout onChange)
-  updateLayouts: (layouts: Layout[]) => void;
+  setDragging: (isDragging: boolean) => void;
+  setResizing: (isResizing: boolean) => void;
   // Zoom actions
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
@@ -69,6 +81,8 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
       selectedElementId: null,
       isPanelOpen: true,
       zoom: 100,
+      isDragging: false,
+      isResizing: false,
       
       addElement: (element) =>
         set((state) => ({
@@ -89,10 +103,17 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
           ),
         })),
       
-      updateElementLayout: (id, layout) =>
+      updateElementPosition: (id, x, y) =>
         set((state) => ({
           elements: state.elements.map((el) =>
-            el.id === id ? { ...el, x: layout.x, y: layout.y, w: layout.w, h: layout.h } : el
+            el.id === id ? { ...el, x, y } : el
+          ),
+        })),
+      
+      updateElementSize: (id, width, height) =>
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, width, height } : el
           ),
         })),
       
@@ -102,22 +123,8 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
       
       clearElements: () => set({ elements: [], selectedElementId: null }),
       
-      updateLayouts: (layouts) =>
-        set((state) => ({
-          elements: state.elements.map((el) => {
-            const layoutItem = layouts.find((l) => (l as any).i === el.id);
-            if (layoutItem) {
-              return {
-                ...el,
-                x: layoutItem.x,
-                y: layoutItem.y,
-                w: layoutItem.w,
-                h: layoutItem.h,
-              };
-            }
-            return el;
-          }),
-        })),
+      setDragging: (isDragging) => set({ isDragging }),
+      setResizing: (isResizing) => set({ isResizing }),
       
       // Zoom actions
       setZoom: (zoom) => set({ zoom: Math.min(Math.max(zoom, 50), 200) }),
