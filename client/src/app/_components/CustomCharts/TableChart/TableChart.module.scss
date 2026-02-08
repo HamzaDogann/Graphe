@@ -1,0 +1,166 @@
+/* TableChart Styles */
+
+.chartWrapper {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.chartContent {
+    flex: 1;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e8ebf2;
+    overflow: hidden;
+}
+
+.chartTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #323039;
+    margin: 0 0 4px 0;
+}
+
+.chartDescription {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+/* Table Container */
+.tableContainer {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+
+    th,
+    td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        white-space: nowrap;
+
+        &.sortable {
+            cursor: pointer;
+            user-select: none;
+
+            &:hover {
+                background: #f3f4f6;
+            }
+        }
+    }
+
+    td {
+        color: #4b5563;
+    }
+
+    tbody tr {
+        transition: background 0.15s ease;
+
+        &:hover {
+            background: #f9fafb;
+        }
+
+        &:last-child td {
+            border-bottom: none;
+        }
+    }
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sortIcon {
+    display: flex;
+    color: #5c85ff;
+}
+
+.rowNumberHeader,
+.rowNumber {
+    width: 40px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.pageInfo {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.pageButtons {
+    display: flex;
+    gap: 8px;
+
+    button {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #374151;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover:not(:disabled) {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .chartWrapper {
+        flex-direction: column;
+    }
+
+    .table {
+        font-size: 0.8rem;
+
+        th,
+        td {
+            padding: 8px 12px;
+        }
+    }
+
+    .pagination {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+}

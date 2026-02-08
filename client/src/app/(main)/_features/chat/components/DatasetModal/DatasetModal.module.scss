@@ -242,3 +242,18 @@
         width: 80%;
     }
 }
+
+/* Error Message */
+.errorMessage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #ef4444;
+    font-size: 0.95rem;
+    text-align: center;
+
+    p {
+        margin: 0;
+    }
+}

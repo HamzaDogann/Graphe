@@ -1,0 +1,46 @@
+/* LineChart Styles - ApexCharts wrapper */
+
+.chartWrapper {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.chartContent {
+    flex: 1;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e8ebf2;
+    overflow: hidden;
+}
+
+.chartTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #323039;
+    margin: 0 0 4px 0;
+}
+
+.chartDescription {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+.chartBody {
+    width: 100%;
+    min-height: 200px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .chartWrapper {
+        flex-direction: column;
+    }
+
+    .chartContent {
+        padding: 16px;
+    }
+}

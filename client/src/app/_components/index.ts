@@ -18,3 +18,6 @@ export { ProcessingLoader } from "./ProcessingLoader";
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
 export { SettingsModal } from "./SettingsModal";
+
+// Custom Charts
+export * from "./CustomCharts";

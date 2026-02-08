@@ -12,7 +12,7 @@ import { ProcessingLoader } from "@/app/_components";
 import styles from "./WelcomeScreen.module.scss";
 
 export default function WelcomeScreen() {
-  const setFile = useDatasetStore((state) => state.setFile);
+  const parseFile = useDatasetStore((state) => state.parseFile);
   const { user } = useUserStore();
   const { addChat } = useChatStore();
   const router = useRouter();
@@ -72,11 +72,15 @@ export default function WelcomeScreen() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      setFile(file);
+
+      // Parse the file and store data before navigation
+      await parseFile(file);
 
       // Create a new chat
       const newChat = {

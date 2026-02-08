@@ -1,0 +1,21 @@
+/* ChartRenderer Styles */
+
+.chartRenderer {
+    width: 100%;
+}
+
+.unsupportedChart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    color: #dc2626;
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+}

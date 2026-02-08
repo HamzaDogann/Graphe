@@ -90,6 +90,43 @@
     color: #6b7280;
 }
 
+/* Error Container */
+.errorContainer {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    margin-left: 48px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    color: #dc2626;
+
+    svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+}
+
+/* Text Only Response */
+.textOnlyResponse {
+    padding-left: 48px;
+    padding-right: 60px;
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #4b5563;
+        line-height: 1.6;
+    }
+}
+
 .actionButtons {
     display: flex;
     flex-direction: column;

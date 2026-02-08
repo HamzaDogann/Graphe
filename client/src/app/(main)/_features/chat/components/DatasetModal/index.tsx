@@ -1,15 +1,20 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { FileSpreadsheet, FileJson, RefreshCw, Trash2 } from "lucide-react";
+import { useRef } from "react";
+import {
+  FileSpreadsheet,
+  FileJson,
+  RefreshCw,
+  Trash2,
+  Plus, // Yeni ikon eklendi
+} from "lucide-react";
 import { Modal, ProcessingLoader } from "@/app/_components";
 import { TableView } from "./TableView";
 import { JsonView } from "./JsonView";
 import styles from "./DatasetModal.module.scss";
 
-// Global Store ve Hook
+// Global Store
 import { useDatasetStore } from "@/store/useDatasetStore";
-import { useFileParser } from "../../hooks/useFileParser";
 
 interface Props {
   isOpen: boolean;
@@ -20,24 +25,17 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // GLOBAL STATE
-  const { parsedData, isLoading, setFile, setParsedData, setIsLoading, reset } =
-    useDatasetStore();
+  const { parsedData, isLoading, parseFile, reset, error } = useDatasetStore();
 
-  const { parseFile, data: newData, loading: newLoading } = useFileParser();
+  // Veri var mı kontrolü
+  const hasData = !!parsedData;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIsLoading(true);
-      setFile(file);
-      parseFile(file);
+      await parseFile(file);
     }
   };
-
-  useEffect(() => {
-    if (newData) setParsedData(newData);
-    if (newLoading !== undefined) setIsLoading(newLoading);
-  }, [newData, newLoading, setParsedData, setIsLoading]);
 
   const handleChangeClick = () => {
     fileInputRef.current?.click();
@@ -48,7 +46,7 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
     onClose();
   };
 
-  // Header için icon
+  // Header için sol taraftaki ikon (Veri yoksa varsayılan Spreadsheet ikonu)
   const headerIcon =
     parsedData?.type === "json" ? (
       <FileJson size={22} />
@@ -67,42 +65,68 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
         accept=".csv, .xlsx, .xls, .json"
       />
 
-      {/* Change Button */}
+      {/* Change / Add Data Button */}
       <button className={styles.changeBtn} onClick={handleChangeClick}>
-        <RefreshCw size={16} />
-        <span>Change</span>
+        {hasData ? <RefreshCw size={16} /> : <Plus size={16} />}
+        <span>{hasData ? "Change" : "Add Data"}</span>
       </button>
 
-      {/* Delete Button */}
-      <button className={styles.deleteBtn} onClick={handleDeleteDataset}>
-        <Trash2 size={16} />
-        <span>Delete</span>
-      </button>
+      {/* Delete Button - Sadece veri varsa göster */}
+      {hasData && (
+        <button className={styles.deleteBtn} onClick={handleDeleteDataset}>
+          <Trash2 size={16} />
+          <span>Delete</span>
+        </button>
+      )}
     </>
   );
+
+  // Modal Başlığı ve Alt Başlığı
+  const modalTitle = hasData ? parsedData.fileName : "No Dataset";
+  const modalSubtitle = hasData
+    ? `${parsedData.fileSize} • ${
+        parsedData.type === "table"
+          ? `${parsedData.rows?.length} Rows`
+          : "JSON Object"
+      }`
+    : "Upload a file to view data";
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={parsedData?.fileName || "No Data"}
-      subtitle={
-        parsedData
-          ? `${parsedData.fileSize} • ${
-              parsedData.type === "table"
-                ? `${parsedData.rows?.length} Rows`
-                : "JSON Object"
-            }`
-          : undefined
-      }
+      title={modalTitle}
+      subtitle={modalSubtitle}
       icon={headerIcon}
       width="large"
       headerContent={headerContent}
     >
       {isLoading ? (
         <ProcessingLoader text="Processing data..." size="medium" />
+      ) : error ? (
+        <div className={styles.errorMessage}>
+          <p>Error: {error}</p>
+        </div>
       ) : (
         <>
+          {/* Eğer veri yoksa boş durum mesajı gösterebiliriz veya boş bırakabiliriz */}
+          {!hasData && !isLoading && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px",
+                color: "#666",
+                gap: "10px",
+              }}
+            >
+              <FileSpreadsheet size={48} opacity={0.5} />
+              <p>No dataset currently loaded.</p>
+            </div>
+          )}
+
           {parsedData?.type === "table" &&
             parsedData.headers &&
             parsedData.rows && (
