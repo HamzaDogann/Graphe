@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
 import {
   ChartActions,
   COLOR_PALETTES,
   TypographySettings,
+  DEFAULT_TYPOGRAPHY,
 } from "../ChartActions";
 import { LineChartProps, DEFAULT_CHART_COLORS } from "@/types/chart";
 import styles from "./LineChart.module.scss";
@@ -31,16 +32,16 @@ export const LineChart = ({
   onDataPointClick,
 }: LineChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [colors, setColors] = useState<string[]>([
+  const [colors, setColors] = useState<string[]>(() => [
     colorScheme[0] || COLOR_PALETTES.default[0],
   ]);
-  const [typography, setTypography] = useState<TypographySettings>({
-    fontSize: 14,
-    color: "#323039",
-    isBold: false,
-    isItalic: false,
-    isUnderline: false,
-  });
+  const [typography, setTypography] =
+    useState<TypographySettings>(DEFAULT_TYPOGRAPHY);
+
+  // Sync colors when colorScheme prop changes
+  useEffect(() => {
+    setColors([colorScheme[0] || COLOR_PALETTES.default[0]]);
+  }, [colorScheme]);
 
   // Extract series and categories
   const series = useMemo(
@@ -85,7 +86,7 @@ export const LineChart = ({
             }
           },
         },
-        fontFamily: "inherit",
+        fontFamily: typography.fontFamily,
         dropShadow: {
           enabled: true,
           color: colors[0],
@@ -123,7 +124,12 @@ export const LineChart = ({
       legend: {
         show: showLegend,
         position: "bottom",
-        fontSize: "13px",
+        fontSize: `${typography.fontSize}px`,
+        fontWeight: typography.isBold ? 700 : 500,
+        fontFamily: typography.fontFamily,
+        labels: {
+          colors: typography.color,
+        },
         markers: {
           size: 6,
           strokeWidth: 0,
@@ -134,8 +140,9 @@ export const LineChart = ({
         labels: {
           show: showLabels,
           style: {
-            fontSize: "12px",
-            colors: "#6b7280",
+            fontSize: `${typography.fontSize}px`,
+            fontFamily: typography.fontFamily,
+            colors: typography.color,
           },
           rotate: -45,
           rotateAlways: categories.length > 8,
@@ -159,8 +166,9 @@ export const LineChart = ({
         labels: {
           show: showLabels,
           style: {
-            fontSize: "12px",
-            colors: "#6b7280",
+            fontSize: `${typography.fontSize}px`,
+            fontFamily: typography.fontFamily,
+            colors: typography.color,
           },
           formatter: (val: number) => {
             if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
@@ -186,6 +194,10 @@ export const LineChart = ({
       },
       tooltip: {
         enabled: true,
+        style: {
+          fontSize: `${typography.fontSize}px`,
+          fontFamily: typography.fontFamily,
+        },
         y: {
           formatter: (val: number) => val.toLocaleString(),
         },
@@ -221,28 +233,25 @@ export const LineChart = ({
       fillArea,
       data,
       onDataPointClick,
+      typography,
     ],
   );
 
-  // Screenshot handler with SVG filter
+  // Screenshot handler using html2canvas
   const handleScreenshot = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current, {
+      const canvas = await html2canvas(chartRef.current, {
         backgroundColor: "#ffffff",
-        pixelRatio: 2,
-        cacheBust: true,
-        filter: (node) => {
-          const exclusionClasses = [
-            "apexcharts-tooltip",
-            "apexcharts-xaxistooltip",
-          ];
-          return !exclusionClasses.some((cls) => node.classList?.contains(cls));
-        },
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+
       const link = document.createElement("a");
       link.download = `${title.replace(/\s+/g, "_")}_chart.png`;
-      link.href = dataUrl;
+      link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (error) {
       console.error("Failed to capture chart:", error);
@@ -268,10 +277,25 @@ export const LineChart = ({
   const titleStyle = useMemo(
     () => ({
       fontSize: `${typography.fontSize + 4}px`,
+      fontFamily: typography.fontFamily,
       color: typography.color,
       fontWeight: typography.isBold ? 700 : 600,
-      fontStyle: typography.isItalic ? "italic" : "normal",
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
       textDecoration: typography.isUnderline ? "underline" : "none",
+    }),
+    [typography],
+  );
+
+  const descriptionStyle = useMemo(
+    () => ({
+      fontSize: `${typography.fontSize}px`,
+      fontFamily: typography.fontFamily,
+      color: typography.color,
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
     }),
     [typography],
   );
@@ -286,13 +310,7 @@ export const LineChart = ({
           </h3>
         )}
         {description && (
-          <p
-            className={styles.chartDescription}
-            style={{
-              color: typography.color,
-              fontStyle: typography.isItalic ? "italic" : "normal",
-            }}
-          >
+          <p className={styles.chartDescription} style={descriptionStyle}>
             {description}
           </p>
         )}

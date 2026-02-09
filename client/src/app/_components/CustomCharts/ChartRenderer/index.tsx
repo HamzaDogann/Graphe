@@ -7,6 +7,7 @@ import {
   ChartDataPoint,
   DEFAULT_CHART_COLORS,
 } from "@/types/chart";
+import type { ChartStyling } from "@/types/chat";
 import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
@@ -15,6 +16,8 @@ import styles from "./ChartRenderer.module.scss";
 
 interface ChartRendererProps {
   renderData: ChartRenderData;
+  messageId?: string; // For saving styling updates
+  storedStyling?: ChartStyling; // Styling from database
   animate?: boolean;
   showLegend?: boolean;
   colorScheme?: string[];
@@ -23,12 +26,22 @@ interface ChartRendererProps {
 
 export const ChartRenderer = ({
   renderData,
+  messageId,
+  storedStyling,
   animate = true,
   showLegend = true,
-  colorScheme = DEFAULT_CHART_COLORS,
+  colorScheme,
   onDataPointClick,
 }: ChartRendererProps) => {
   const { type, config, processedData, originalData } = renderData;
+
+  // Use stored styling colors if available, otherwise use prop or default
+  const effectiveColorScheme = useMemo(() => {
+    if (storedStyling?.colors?.length) {
+      return storedStyling.colors;
+    }
+    return colorScheme || DEFAULT_CHART_COLORS;
+  }, [storedStyling?.colors, colorScheme]);
 
   // Build chart props based on type
   const chartElement = useMemo(() => {
@@ -39,7 +52,7 @@ export const ChartRenderer = ({
             data={processedData}
             title={config.title}
             description={config.description}
-            colorScheme={colorScheme}
+            colorScheme={effectiveColorScheme}
             showLegend={showLegend}
             animate={animate}
             showPercentage={true}
@@ -53,7 +66,7 @@ export const ChartRenderer = ({
             data={processedData}
             title={config.title}
             description={config.description}
-            colorScheme={colorScheme}
+            colorScheme={effectiveColorScheme}
             showLegend={showLegend}
             animate={animate}
             orientation="vertical"
@@ -68,7 +81,7 @@ export const ChartRenderer = ({
             data={processedData}
             title={config.title}
             description={config.description}
-            colorScheme={colorScheme}
+            colorScheme={effectiveColorScheme}
             showLegend={showLegend}
             animate={animate}
             showDots={true}
@@ -118,7 +131,7 @@ export const ChartRenderer = ({
     type,
     config,
     processedData,
-    colorScheme,
+    effectiveColorScheme,
     showLegend,
     animate,
     onDataPointClick,

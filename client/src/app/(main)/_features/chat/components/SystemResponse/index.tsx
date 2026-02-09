@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import { ChartRenderer } from "@/app/_components";
 import { ChartRenderData } from "@/types/chart";
+import type { StoredChartData } from "@/types/chat";
 import styles from "./SystemResponse.module.scss";
 
 // Graphe Logo SVG Component
@@ -20,16 +21,20 @@ const GrapheLogo = () => (
 );
 
 interface SystemResponseProps {
+  messageId?: string;
   title?: string;
   description?: string;
   chartData?: ChartRenderData;
+  storedChartData?: StoredChartData;
   error?: string;
 }
 
 export const SystemResponse = ({
+  messageId,
   title = "Response",
   description,
   chartData,
+  storedChartData,
   error,
 }: SystemResponseProps) => {
   return (
@@ -61,7 +66,11 @@ export const SystemResponse = ({
       {/* Chart Rendering */}
       {chartData && !error && (
         <div className={styles.chartSection}>
-          <ChartRenderer renderData={chartData} />
+          <ChartRenderer
+            renderData={chartData}
+            messageId={messageId}
+            storedStyling={storedChartData?.styling}
+          />
         </div>
       )}
 

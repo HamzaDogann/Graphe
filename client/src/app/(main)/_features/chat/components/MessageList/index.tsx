@@ -7,21 +7,33 @@ import styles from "./MessageList.module.scss";
 import { UserMessage } from "../UserMessage";
 import { SystemResponseLoading } from "../SystemResponseLoading";
 import { SystemResponse } from "../SystemResponse";
-import { ChartRenderData } from "@/types/chart";
+import type { Message as StoreMessage, StoredChartData } from "@/types/chat";
+import { storedToRenderData } from "@/types/chat";
 
-// Message tipini dışarıdan erişilebilir yapıyoruz
+// Legacy Message type for backward compatibility
 export interface Message {
   id: string;
   type: "user" | "system";
   content: string;
   isLoading?: boolean;
-  chartData?: ChartRenderData; // AI-generated chart data
-  error?: string; // Error message if generation failed
+  chartData?: any;
+  error?: string;
 }
 
+// Props can accept either legacy Message[] or store Message[]
 interface MessageListProps {
-  messages: Message[];
+  messages: Message[] | StoreMessage[];
 }
+
+// Type guard to check if message is from store
+const isStoreMessage = (msg: Message | StoreMessage): msg is StoreMessage => {
+  return "role" in msg;
+};
+
+// Check if message is loading (temp message without real content)
+const isLoadingMessage = (msg: StoreMessage): boolean => {
+  return msg.id.startsWith("temp-loading-") && msg.role === "assistant";
+};
 
 export const MessageList = ({ messages }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,6 +46,43 @@ export const MessageList = ({ messages }: MessageListProps) => {
   return (
     <div className={styles.messageListContainer}>
       {messages.map((message) => {
+        // Handle store messages (new format)
+        if (isStoreMessage(message)) {
+          // 1. Kullanıcı Mesajı
+          if (message.role === "user") {
+            return (
+              <UserMessage key={message.id} content={message.content || ""} />
+            );
+          }
+
+          // 2. Loading State (temp message)
+          if (isLoadingMessage(message)) {
+            return <SystemResponseLoading key={message.id} />;
+          }
+
+          // 3. Assistant Response
+          if (message.role === "assistant") {
+            const chartData = message.chartData as StoredChartData | undefined;
+            const renderData = chartData
+              ? storedToRenderData(chartData)
+              : undefined;
+
+            return (
+              <SystemResponse
+                key={message.id}
+                messageId={message.id}
+                title={chartData?.title || "Response"}
+                description={message.content || chartData?.title}
+                chartData={renderData}
+                storedChartData={chartData}
+              />
+            );
+          }
+
+          return null;
+        }
+
+        // Handle legacy messages (old format) - backward compatibility
         // 1. Kullanıcı Mesajı
         if (message.type === "user") {
           return <UserMessage key={message.id} content={message.content} />;

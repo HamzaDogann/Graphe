@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import { createPortal } from "react-dom";
 import { HexColorPicker } from "react-colorful";
 import {
@@ -15,6 +22,7 @@ import {
   Bold,
   Italic,
   Underline,
+  ChevronDown,
 } from "lucide-react";
 import styles from "./ChartActions.module.scss";
 
@@ -104,17 +112,33 @@ export const COLOR_PALETTES = {
 
 export type PaletteKey = keyof typeof COLOR_PALETTES;
 
+// Font families
+export const FONT_FAMILIES = [
+  { label: "System Default", value: "inherit" },
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, sans-serif" },
+  { label: "Tahoma", value: "Tahoma, sans-serif" },
+  { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+  { label: "Times New Roman", value: "'Times New Roman', serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Courier New", value: "'Courier New', monospace" },
+  { label: "Impact", value: "Impact, sans-serif" },
+];
+
 // Typography settings interface
 export interface TypographySettings {
   fontSize: number;
+  fontFamily: string;
   color: string;
   isBold: boolean;
   isItalic: boolean;
   isUnderline: boolean;
 }
 
-const DEFAULT_TYPOGRAPHY: TypographySettings = {
+export const DEFAULT_TYPOGRAPHY: TypographySettings = {
   fontSize: 14,
+  fontFamily: "inherit",
   color: "#323039",
   isBold: false,
   isItalic: false,
@@ -140,553 +164,761 @@ interface ChartActionsProps {
   currentTypography?: TypographySettings;
 }
 
-export const ChartActions = ({
-  onScreenshot,
-  onColorChange,
-  onTypographyChange,
-  onSave,
-  onDownload,
-  onFullscreen,
-  showScreenshot = true,
-  showColors = true,
-  showFont = true,
-  showSave = true,
-  showDownload = false,
-  showFullscreen = false,
-  orientation = "vertical",
-  currentColors = COLOR_PALETTES.default,
-  colorCount = 4,
-  currentTypography = DEFAULT_TYPOGRAPHY,
-}: ChartActionsProps) => {
-  // Palette Menu State
-  const [showPaletteMenu, setShowPaletteMenu] = useState(false);
-  const [selectedPalette, setSelectedPalette] = useState<PaletteKey>("default");
-  const [customColors, setCustomColors] = useState<string[]>(
-    currentColors.slice(0, colorCount),
-  );
-  const [palettePosition, setPalettePosition] = useState({ top: 0, left: 0 });
-  const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
+// Mini Color Picker Tooltip Component
+interface ColorPickerTooltipProps {
+  color: string;
+  onChange: (color: string) => void;
+  onClose: () => void;
+  anchorRect: DOMRect | null;
+}
 
-  // Typography Menu State
-  const [showTypographyMenu, setShowTypographyMenu] = useState(false);
-  const [typography, setTypography] =
-    useState<TypographySettings>(currentTypography);
-  const [typographyPosition, setTypographyPosition] = useState({
-    top: 0,
-    left: 0,
-  });
-  const [showTypoColorPicker, setShowTypoColorPicker] = useState(false);
+const ColorPickerTooltip = memo(
+  ({ color, onChange, onClose, anchorRect }: ColorPickerTooltipProps) => {
+    const tooltipRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  // Portal/Mounted state
-  const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+      if (!anchorRect) return;
 
-  // Refs
-  const paletteButtonRef = useRef<HTMLButtonElement>(null);
-  const paletteMenuRef = useRef<HTMLDivElement>(null);
-  const typographyButtonRef = useRef<HTMLButtonElement>(null);
-  const typographyMenuRef = useRef<HTMLDivElement>(null);
+      const tooltipWidth = 220;
+      const tooltipHeight = 260;
 
-  // Check if mounted (for portal)
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+      let left = anchorRect.right + 8;
+      let top = anchorRect.top;
 
-  // Calculate palette menu position
-  const updatePalettePosition = useCallback(() => {
-    if (paletteButtonRef.current) {
-      const rect = paletteButtonRef.current.getBoundingClientRect();
-      const menuWidth = 320;
-      const menuHeight = 450;
-
-      let left = rect.right + 12;
-      let top = rect.top;
-
-      if (left + menuWidth > window.innerWidth) {
-        left = rect.left - menuWidth - 12;
+      // Check right overflow
+      if (left + tooltipWidth > window.innerWidth - 20) {
+        left = anchorRect.left - tooltipWidth - 8;
       }
+      // Check left overflow
       if (left < 20) {
         left = 20;
       }
-      if (top + menuHeight > window.innerHeight) {
-        top = window.innerHeight - menuHeight - 20;
+      // Check bottom overflow
+      if (top + tooltipHeight > window.innerHeight - 20) {
+        top = window.innerHeight - tooltipHeight - 20;
       }
+      // Check top overflow
       if (top < 20) {
         top = 20;
       }
 
-      setPalettePosition({ top, left });
-    }
-  }, []);
+      setPosition({ top, left });
+    }, [anchorRect]);
 
-  // Calculate typography menu position
-  const updateTypographyPosition = useCallback(() => {
-    if (typographyButtonRef.current) {
-      const rect = typographyButtonRef.current.getBoundingClientRect();
-      const menuWidth = 280;
-      const menuHeight = 300;
+    // Handle click outside
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (
+          tooltipRef.current &&
+          !tooltipRef.current.contains(e.target as Node)
+        ) {
+          onClose();
+        }
+      };
 
-      let left = rect.right + 12;
-      let top = rect.top;
-
-      if (left + menuWidth > window.innerWidth) {
-        left = rect.left - menuWidth - 12;
-      }
-      if (left < 20) {
-        left = 20;
-      }
-      if (top + menuHeight > window.innerHeight) {
-        top = window.innerHeight - menuHeight - 20;
-      }
-      if (top < 20) {
-        top = 20;
-      }
-
-      setTypographyPosition({ top, left });
-    }
-  }, []);
-
-  // Update positions when menus open
-  useEffect(() => {
-    if (showPaletteMenu) {
-      updatePalettePosition();
-      window.addEventListener("resize", updatePalettePosition);
-      window.addEventListener("scroll", updatePalettePosition, true);
-    }
-    return () => {
-      window.removeEventListener("resize", updatePalettePosition);
-      window.removeEventListener("scroll", updatePalettePosition, true);
-    };
-  }, [showPaletteMenu, updatePalettePosition]);
-
-  useEffect(() => {
-    if (showTypographyMenu) {
-      updateTypographyPosition();
-      window.addEventListener("resize", updateTypographyPosition);
-      window.addEventListener("scroll", updateTypographyPosition, true);
-    }
-    return () => {
-      window.removeEventListener("resize", updateTypographyPosition);
-      window.removeEventListener("scroll", updateTypographyPosition, true);
-    };
-  }, [showTypographyMenu, updateTypographyPosition]);
-
-  // Close palette menu when clicking outside (but not on menu content)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const isMenuClick = paletteMenuRef.current?.contains(target);
-      const isButtonClick = paletteButtonRef.current?.contains(target);
-
-      // Don't close if click is inside menu or on button
-      if (!isMenuClick && !isButtonClick) {
-        setShowPaletteMenu(false);
-        setActiveColorIndex(null);
-      }
-    };
-
-    if (showPaletteMenu) {
-      // Use setTimeout to avoid immediate close on the same click that opened it
       const timer = setTimeout(() => {
         document.addEventListener("mousedown", handleClickOutside);
-      }, 0);
+      }, 10);
+
       return () => {
         clearTimeout(timer);
         document.removeEventListener("mousedown", handleClickOutside);
       };
-    }
-  }, [showPaletteMenu]);
+    }, [onClose]);
 
-  // Close typography menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const isMenuClick = typographyMenuRef.current?.contains(target);
-      const isButtonClick = typographyButtonRef.current?.contains(target);
+    if (!anchorRect) return null;
 
-      if (!isMenuClick && !isButtonClick) {
-        setShowTypographyMenu(false);
-        setShowTypoColorPicker(false);
-      }
-    };
-
-    if (showTypographyMenu) {
-      const timer = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 0);
-      return () => {
-        clearTimeout(timer);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [showTypographyMenu]);
-
-  // Handle palette selection
-  const handlePaletteSelect = (paletteKey: PaletteKey) => {
-    setSelectedPalette(paletteKey);
-    const newColors = COLOR_PALETTES[paletteKey].slice(0, colorCount);
-    setCustomColors(newColors);
-    onColorChange?.(newColors);
-  };
-
-  // Handle individual color change from react-colorful
-  const handleColorChange = (color: string) => {
-    if (activeColorIndex === null) return;
-    const newColors = [...customColors];
-    newColors[activeColorIndex] = color;
-    setCustomColors(newColors);
-    onColorChange?.(newColors);
-  };
-
-  // Handle typography changes
-  const handleTypographyUpdate = (
-    key: keyof TypographySettings,
-    value: number | string | boolean,
-  ) => {
-    const newTypography = { ...typography, [key]: value };
-    setTypography(newTypography);
-    onTypographyChange?.(newTypography);
-  };
-
-  // Toggle menus
-  const togglePaletteMenu = () => {
-    setShowPaletteMenu((prev) => !prev);
-    setShowTypographyMenu(false);
-    setActiveColorIndex(null);
-  };
-
-  const toggleTypographyMenu = () => {
-    setShowTypographyMenu((prev) => !prev);
-    setShowPaletteMenu(false);
-    setShowTypoColorPicker(false);
-  };
-
-  // Palette Menu Component
-  const PaletteMenu = () => (
-    <div
-      ref={paletteMenuRef}
-      className={styles.paletteMenu}
-      style={{ top: palettePosition.top, left: palettePosition.left }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div className={styles.menuHeader}>
-        <span>Color Palette</span>
+    return createPortal(
+      <div
+        ref={tooltipRef}
+        className={styles.colorPickerTooltip}
+        style={{ top: position.top, left: position.left }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <button
-          className={styles.closeBtn}
+          className={styles.pickerCloseBtn}
+          onClick={onClose}
+          title="Close"
+        >
+          <X size={14} />
+        </button>
+        <HexColorPicker color={color} onChange={onChange} />
+        <div className={styles.hexInput}>
+          <input
+            type="text"
+            value={color}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (/^#[0-9A-Fa-f]{0,6}$/.test(val) || val === "") {
+                onChange(val || "#000000");
+              }
+            }}
+            maxLength={7}
+            spellCheck={false}
+          />
+        </div>
+      </div>,
+      document.body,
+    );
+  },
+);
+
+ColorPickerTooltip.displayName = "ColorPickerTooltip";
+
+// Main ChartActions Component
+export const ChartActions = memo(
+  ({
+    onScreenshot,
+    onColorChange,
+    onTypographyChange,
+    onSave,
+    onDownload,
+    onFullscreen,
+    showScreenshot = true,
+    showColors = true,
+    showFont = true,
+    showSave = true,
+    showDownload = false,
+    showFullscreen = false,
+    orientation = "vertical",
+    currentColors = COLOR_PALETTES.default,
+    colorCount = 4,
+    currentTypography = DEFAULT_TYPOGRAPHY,
+  }: ChartActionsProps) => {
+    // Palette Menu State
+    const [showPaletteMenu, setShowPaletteMenu] = useState(false);
+    const [selectedPalette, setSelectedPalette] =
+      useState<PaletteKey>("default");
+    const [customColors, setCustomColors] = useState<string[]>(() =>
+      currentColors.slice(0, colorCount),
+    );
+    const [palettePosition, setPalettePosition] = useState({ top: 0, left: 0 });
+
+    // Color picker state (for custom colors)
+    const [activeColorPicker, setActiveColorPicker] = useState<{
+      index: number;
+      rect: DOMRect;
+    } | null>(null);
+
+    // Typography Menu State
+    const [showTypographyMenu, setShowTypographyMenu] = useState(false);
+    const [typography, setTypography] =
+      useState<TypographySettings>(currentTypography);
+    const [typographyPosition, setTypographyPosition] = useState({
+      top: 0,
+      left: 0,
+    });
+
+    // Typography color picker state
+    const [showTypoColorPicker, setShowTypoColorPicker] = useState<{
+      rect: DOMRect;
+    } | null>(null);
+
+    // Font dropdown state
+    const [showFontDropdown, setShowFontDropdown] = useState(false);
+
+    // Portal/Mounted state
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Refs
+    const paletteButtonRef = useRef<HTMLButtonElement>(null);
+    const paletteMenuRef = useRef<HTMLDivElement>(null);
+    const typographyButtonRef = useRef<HTMLButtonElement>(null);
+    const typographyMenuRef = useRef<HTMLDivElement>(null);
+    const colorButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const typoColorBtnRef = useRef<HTMLButtonElement>(null);
+
+    // Check if mounted (for portal)
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
+
+    // Sync customColors when currentColors prop changes
+    useEffect(() => {
+      setCustomColors(currentColors.slice(0, colorCount));
+    }, [currentColors, colorCount]);
+
+    // Sync typography when currentTypography prop changes
+    useEffect(() => {
+      setTypography(currentTypography);
+    }, [currentTypography]);
+
+    // Calculate palette menu position
+    const updatePalettePosition = useCallback(() => {
+      if (paletteButtonRef.current) {
+        const rect = paletteButtonRef.current.getBoundingClientRect();
+        const menuWidth = 300;
+        const menuHeight = 380;
+
+        let left = rect.right + 12;
+        let top = rect.top;
+
+        if (left + menuWidth > window.innerWidth - 20) {
+          left = rect.left - menuWidth - 12;
+        }
+        if (left < 20) left = 20;
+        if (top + menuHeight > window.innerHeight - 20) {
+          top = window.innerHeight - menuHeight - 20;
+        }
+        if (top < 20) top = 20;
+
+        setPalettePosition({ top, left });
+      }
+    }, []);
+
+    // Calculate typography menu position
+    const updateTypographyPosition = useCallback(() => {
+      if (typographyButtonRef.current) {
+        const rect = typographyButtonRef.current.getBoundingClientRect();
+        const menuWidth = 280;
+        const menuHeight = 320;
+
+        let left = rect.right + 12;
+        let top = rect.top;
+
+        if (left + menuWidth > window.innerWidth - 20) {
+          left = rect.left - menuWidth - 12;
+        }
+        if (left < 20) left = 20;
+        if (top + menuHeight > window.innerHeight - 20) {
+          top = window.innerHeight - menuHeight - 20;
+        }
+        if (top < 20) top = 20;
+
+        setTypographyPosition({ top, left });
+      }
+    }, []);
+
+    // Update positions when menus open
+    useEffect(() => {
+      if (showPaletteMenu) {
+        updatePalettePosition();
+        window.addEventListener("resize", updatePalettePosition);
+        window.addEventListener("scroll", updatePalettePosition, true);
+      }
+      return () => {
+        window.removeEventListener("resize", updatePalettePosition);
+        window.removeEventListener("scroll", updatePalettePosition, true);
+      };
+    }, [showPaletteMenu, updatePalettePosition]);
+
+    useEffect(() => {
+      if (showTypographyMenu) {
+        updateTypographyPosition();
+        window.addEventListener("resize", updateTypographyPosition);
+        window.addEventListener("scroll", updateTypographyPosition, true);
+      }
+      return () => {
+        window.removeEventListener("resize", updateTypographyPosition);
+        window.removeEventListener("scroll", updateTypographyPosition, true);
+      };
+    }, [showTypographyMenu, updateTypographyPosition]);
+
+    // Click outside handler for palette menu
+    useEffect(() => {
+      if (!showPaletteMenu) return;
+
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Node;
+        // Don't close if clicking inside the menu or button
+        if (
+          paletteMenuRef.current?.contains(target) ||
+          paletteButtonRef.current?.contains(target)
+        ) {
+          return;
+        }
+        // Don't close if color picker is open (clicking inside color picker)
+        if (activeColorPicker) {
+          return;
+        }
+        setShowPaletteMenu(false);
+        setActiveColorPicker(null);
+      };
+
+      const timer = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 10);
+
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [showPaletteMenu, activeColorPicker]);
+
+    // Click outside handler for typography menu
+    useEffect(() => {
+      if (!showTypographyMenu) return;
+
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Node;
+        // Don't close if clicking inside the menu or button
+        if (
+          typographyMenuRef.current?.contains(target) ||
+          typographyButtonRef.current?.contains(target)
+        ) {
+          return;
+        }
+        // Don't close if typography color picker is open
+        if (showTypoColorPicker) {
+          return;
+        }
+        setShowTypographyMenu(false);
+        setShowTypoColorPicker(null);
+        setShowFontDropdown(false);
+      };
+
+      const timer = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 10);
+
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [showTypographyMenu, showTypoColorPicker]);
+
+    // Handle palette selection
+    const handlePaletteSelect = useCallback(
+      (paletteKey: PaletteKey) => {
+        setSelectedPalette(paletteKey);
+        const newColors = COLOR_PALETTES[paletteKey].slice(0, colorCount);
+        setCustomColors(newColors);
+        onColorChange?.(newColors);
+      },
+      [colorCount, onColorChange],
+    );
+
+    // Handle individual color change
+    const handleColorChange = useCallback(
+      (index: number, color: string) => {
+        setCustomColors((prev) => {
+          const newColors = [...prev];
+          newColors[index] = color;
+          onColorChange?.(newColors);
+          return newColors;
+        });
+      },
+      [onColorChange],
+    );
+
+    // Handle typography changes
+    const handleTypographyUpdate = useCallback(
+      (key: keyof TypographySettings, value: number | string | boolean) => {
+        setTypography((prev) => {
+          const newTypography = { ...prev, [key]: value };
+          onTypographyChange?.(newTypography);
+          return newTypography;
+        });
+      },
+      [onTypographyChange],
+    );
+
+    // Toggle menus
+    const togglePaletteMenu = useCallback(() => {
+      setShowPaletteMenu((prev) => !prev);
+      setShowTypographyMenu(false);
+      setActiveColorPicker(null);
+    }, []);
+
+    const toggleTypographyMenu = useCallback(() => {
+      setShowTypographyMenu((prev) => !prev);
+      setShowPaletteMenu(false);
+      setShowTypoColorPicker(null);
+      setShowFontDropdown(false);
+    }, []);
+
+    // Close palette menu (only via X button)
+    const closePaletteMenu = useCallback(() => {
+      setShowPaletteMenu(false);
+      setActiveColorPicker(null);
+    }, []);
+
+    // Close typography menu (only via X button)
+    const closeTypographyMenu = useCallback(() => {
+      setShowTypographyMenu(false);
+      setShowTypoColorPicker(null);
+      setShowFontDropdown(false);
+    }, []);
+
+    // Open color picker for a custom color
+    const openColorPicker = useCallback((index: number, rect: DOMRect) => {
+      setActiveColorPicker({ index, rect });
+    }, []);
+
+    // Close color picker
+    const closeColorPicker = useCallback(() => {
+      setActiveColorPicker(null);
+    }, []);
+
+    // Open typography color picker
+    const openTypoColorPicker = useCallback(() => {
+      if (typoColorBtnRef.current) {
+        setShowTypoColorPicker({
+          rect: typoColorBtnRef.current.getBoundingClientRect(),
+        });
+      }
+    }, []);
+
+    // Close typography color picker
+    const closeTypoColorPicker = useCallback(() => {
+      setShowTypoColorPicker(null);
+    }, []);
+
+    // Get current font label
+    const currentFontLabel = useMemo(() => {
+      const font = FONT_FAMILIES.find((f) => f.value === typography.fontFamily);
+      return font?.label || "System Default";
+    }, [typography.fontFamily]);
+
+    // Palette Menu Content
+    const paletteMenuContent = useMemo(
+      () => (
+        <div
+          ref={paletteMenuRef}
+          className={styles.paletteMenu}
+          style={{ top: palettePosition.top, left: palettePosition.left }}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => {
-            setShowPaletteMenu(false);
-            setActiveColorIndex(null);
+            // Close color picker when clicking on menu background
+            if (activeColorPicker) {
+              setActiveColorPicker(null);
+            }
           }}
         >
-          <X size={16} />
-        </button>
-      </div>
+          <div className={styles.menuHeader}>
+            <span>Color Palette</span>
+            <button className={styles.closeBtn} onClick={closePaletteMenu}>
+              <X size={16} />
+            </button>
+          </div>
 
-      {/* Preset Palettes */}
-      <div className={styles.sectionLabel}>Presets</div>
-      <div className={styles.palettePresets}>
-        {(Object.keys(COLOR_PALETTES) as PaletteKey[]).map((key) => (
-          <button
-            key={key}
-            className={`${styles.presetBtn} ${selectedPalette === key ? styles.selected : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePaletteSelect(key);
-            }}
-            title={key.charAt(0).toUpperCase() + key.slice(1)}
-          >
-            <div className={styles.presetColors}>
-              {COLOR_PALETTES[key].slice(0, 4).map((color, i) => (
-                <span
-                  key={i}
-                  className={styles.presetColor}
+          {/* Preset Palettes */}
+          <div className={styles.sectionLabel}>Presets</div>
+          <div className={styles.palettePresets}>
+            {(Object.keys(COLOR_PALETTES) as PaletteKey[]).map((key) => (
+              <button
+                key={key}
+                className={`${styles.presetBtn} ${selectedPalette === key ? styles.selected : ""}`}
+                onClick={() => handlePaletteSelect(key)}
+                title={key.charAt(0).toUpperCase() + key.slice(1)}
+              >
+                <div className={styles.presetColors}>
+                  {COLOR_PALETTES[key].slice(0, 4).map((color, i) => (
+                    <span
+                      key={i}
+                      className={styles.presetColor}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                {selectedPalette === key && (
+                  <Check size={12} className={styles.checkIcon} />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Colors */}
+          <div className={styles.customColors}>
+            <div className={styles.sectionLabel}>Custom Colors</div>
+            <div className={styles.colorSwatches}>
+              {customColors.map((color, index) => (
+                <button
+                  key={index}
+                  ref={(el) => {
+                    colorButtonRefs.current[index] = el;
+                  }}
+                  className={`${styles.colorSwatch} ${activeColorPicker?.index === index ? styles.active : ""}`}
                   style={{ backgroundColor: color }}
-                />
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect =
+                      colorButtonRefs.current[index]?.getBoundingClientRect();
+                    if (rect) {
+                      openColorPicker(index, rect);
+                    }
+                  }}
+                  title={`Color ${index + 1}: ${color}`}
+                >
+                  <span className={styles.colorIndex}>{index + 1}</span>
+                </button>
               ))}
             </div>
-            {selectedPalette === key && (
-              <Check size={12} className={styles.checkIcon} />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Custom Colors */}
-      <div className={styles.customColors}>
-        <div className={styles.sectionLabel}>
-          Custom Colors ({customColors.length})
+          </div>
         </div>
-        <div className={styles.colorSwatches}>
-          {customColors.map((color, index) => (
+      ),
+      [
+        palettePosition,
+        selectedPalette,
+        customColors,
+        activeColorPicker,
+        closePaletteMenu,
+        handlePaletteSelect,
+        openColorPicker,
+      ],
+    );
+
+    // Typography Menu Content
+    const typographyMenuContent = useMemo(
+      () => (
+        <div
+          ref={typographyMenuRef}
+          className={styles.typographyMenu}
+          style={{
+            top: typographyPosition.top,
+            left: typographyPosition.left,
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => {
+            // Close typography color picker when clicking on menu background
+            if (showTypoColorPicker) {
+              setShowTypoColorPicker(null);
+            }
+          }}
+        >
+          <div className={styles.menuHeader}>
+            <span>Typography</span>
+            <button className={styles.closeBtn} onClick={closeTypographyMenu}>
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Font Family */}
+          <div className={styles.settingRow}>
+            <label>Font</label>
+            <div className={styles.fontDropdownWrapper}>
+              <button
+                className={styles.fontDropdownBtn}
+                onClick={() => setShowFontDropdown(!showFontDropdown)}
+              >
+                <span style={{ fontFamily: typography.fontFamily }}>
+                  {currentFontLabel}
+                </span>
+                <ChevronDown size={14} />
+              </button>
+              {showFontDropdown && (
+                <div className={styles.fontDropdown}>
+                  {FONT_FAMILIES.map((font) => (
+                    <button
+                      key={font.value}
+                      className={`${styles.fontOption} ${typography.fontFamily === font.value ? styles.selected : ""}`}
+                      style={{ fontFamily: font.value }}
+                      onClick={() => {
+                        handleTypographyUpdate("fontFamily", font.value);
+                        setShowFontDropdown(false);
+                      }}
+                    >
+                      {font.label}
+                      {typography.fontFamily === font.value && (
+                        <Check size={14} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Font Size */}
+          <div className={styles.settingRow}>
+            <label>Size</label>
+            <div className={styles.fontSizeControl}>
+              <button
+                className={styles.sizeBtn}
+                onClick={() =>
+                  handleTypographyUpdate(
+                    "fontSize",
+                    Math.max(8, typography.fontSize - 1),
+                  )
+                }
+              >
+                -
+              </button>
+              <span className={styles.sizeValue}>{typography.fontSize}px</span>
+              <button
+                className={styles.sizeBtn}
+                onClick={() =>
+                  handleTypographyUpdate(
+                    "fontSize",
+                    Math.min(48, typography.fontSize + 1),
+                  )
+                }
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Font Style (Bold, Italic, Underline) */}
+          <div className={styles.settingRow}>
+            <label>Style</label>
+            <div className={styles.styleButtons}>
+              <button
+                className={`${styles.styleBtn} ${typography.isBold ? styles.active : ""}`}
+                onClick={() =>
+                  handleTypographyUpdate("isBold", !typography.isBold)
+                }
+                title="Bold"
+              >
+                <Bold size={16} />
+              </button>
+              <button
+                className={`${styles.styleBtn} ${typography.isItalic ? styles.active : ""}`}
+                onClick={() =>
+                  handleTypographyUpdate("isItalic", !typography.isItalic)
+                }
+                title="Italic"
+              >
+                <Italic size={16} />
+              </button>
+              <button
+                className={`${styles.styleBtn} ${typography.isUnderline ? styles.active : ""}`}
+                onClick={() =>
+                  handleTypographyUpdate("isUnderline", !typography.isUnderline)
+                }
+                title="Underline"
+              >
+                <Underline size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Font Color */}
+          <div className={styles.settingRow}>
+            <label>Color</label>
             <button
-              key={index}
-              className={`${styles.colorSwatch} ${activeColorIndex === index ? styles.active : ""}`}
-              style={{ backgroundColor: color }}
+              ref={typoColorBtnRef}
+              className={styles.colorBtn}
               onClick={(e) => {
                 e.stopPropagation();
-                setActiveColorIndex(activeColorIndex === index ? null : index);
+                openTypoColorPicker();
               }}
-              title={`Color ${index + 1}: ${color}`}
             >
-              <span className={styles.colorIndex}>{index + 1}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Color Picker - shown when a color is selected */}
-        {activeColorIndex !== null && (
-          <div
-            className={styles.colorPickerWrapper}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <div className={styles.colorPickerLabel}>
-              Editing Color {activeColorIndex + 1}
-            </div>
-            <HexColorPicker
-              color={customColors[activeColorIndex]}
-              onChange={handleColorChange}
-            />
-            <div className={styles.colorHexValue}>
-              <input
-                type="text"
-                value={customColors[activeColorIndex]}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
-                    handleColorChange(val);
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                maxLength={7}
+              <span
+                className={styles.colorPreview}
+                style={{ backgroundColor: typography.color }}
               />
-            </div>
+              <span className={styles.colorValue}>{typography.color}</span>
+            </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Typography Menu Component
-  const TypographyMenu = () => (
-    <div
-      ref={typographyMenuRef}
-      className={styles.typographyMenu}
-      style={{ top: typographyPosition.top, left: typographyPosition.left }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div className={styles.menuHeader}>
-        <span>Typography</span>
-        <button
-          className={styles.closeBtn}
-          onClick={() => {
-            setShowTypographyMenu(false);
-            setShowTypoColorPicker(false);
-          }}
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      {/* Font Size */}
-      <div className={styles.settingRow}>
-        <label>Font Size</label>
-        <div className={styles.fontSizeControl}>
-          <button
-            className={styles.sizeBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTypographyUpdate(
-                "fontSize",
-                Math.max(8, typography.fontSize - 1),
-              );
-            }}
-          >
-            -
-          </button>
-          <span className={styles.sizeValue}>{typography.fontSize}px</span>
-          <button
-            className={styles.sizeBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTypographyUpdate(
-                "fontSize",
-                Math.min(48, typography.fontSize + 1),
-              );
-            }}
-          >
-            +
-          </button>
         </div>
-      </div>
+      ),
+      [
+        typographyPosition,
+        typography,
+        showFontDropdown,
+        currentFontLabel,
+        closeTypographyMenu,
+        handleTypographyUpdate,
+        openTypoColorPicker,
+      ],
+    );
 
-      {/* Font Style (Bold, Italic, Underline) */}
-      <div className={styles.settingRow}>
-        <label>Style</label>
-        <div className={styles.styleButtons}>
-          <button
-            className={`${styles.styleBtn} ${typography.isBold ? styles.active : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTypographyUpdate("isBold", !typography.isBold);
-            }}
-            title="Bold"
-          >
-            <Bold size={16} />
-          </button>
-          <button
-            className={`${styles.styleBtn} ${typography.isItalic ? styles.active : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTypographyUpdate("isItalic", !typography.isItalic);
-            }}
-            title="Italic"
-          >
-            <Italic size={16} />
-          </button>
-          <button
-            className={`${styles.styleBtn} ${typography.isUnderline ? styles.active : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTypographyUpdate("isUnderline", !typography.isUnderline);
-            }}
-            title="Underline"
-          >
-            <Underline size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Font Color */}
-      <div className={styles.settingRow}>
-        <label>Color</label>
-        <button
-          className={styles.colorBtn}
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowTypoColorPicker(!showTypoColorPicker);
-          }}
-        >
-          <span
-            className={styles.colorPreview}
-            style={{ backgroundColor: typography.color }}
-          />
-          <span className={styles.colorValue}>{typography.color}</span>
-        </button>
-      </div>
-
-      {/* Typography Color Picker */}
-      {showTypoColorPicker && (
+    return (
+      <>
         <div
-          className={styles.colorPickerWrapper}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
+          className={`${styles.actionButtons} ${
+            orientation === "horizontal" ? styles.horizontal : styles.vertical
+          }`}
         >
-          <HexColorPicker
+          {showScreenshot && (
+            <button
+              className={styles.actionBtn}
+              title="Screenshot"
+              onClick={onScreenshot}
+            >
+              <Camera size={18} />
+            </button>
+          )}
+
+          {showColors && (
+            <button
+              ref={paletteButtonRef}
+              className={`${styles.actionBtn} ${showPaletteMenu ? styles.active : ""}`}
+              title="Colors"
+              onClick={togglePaletteMenu}
+            >
+              <Palette size={18} />
+            </button>
+          )}
+
+          {showFont && (
+            <button
+              ref={typographyButtonRef}
+              className={`${styles.actionBtn} ${showTypographyMenu ? styles.active : ""}`}
+              title="Typography"
+              onClick={toggleTypographyMenu}
+            >
+              <Type size={18} />
+            </button>
+          )}
+
+          {showSave && (
+            <button
+              className={styles.actionBtn}
+              title="Save Chart"
+              onClick={onSave}
+            >
+              <Bookmark size={18} />
+            </button>
+          )}
+
+          {showDownload && (
+            <button
+              className={styles.actionBtn}
+              title="Download"
+              onClick={onDownload}
+            >
+              <Download size={18} />
+            </button>
+          )}
+
+          {showFullscreen && (
+            <button
+              className={styles.actionBtn}
+              title="Fullscreen"
+              onClick={onFullscreen}
+            >
+              <Maximize2 size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Palette Menu Portal */}
+        {isMounted &&
+          showPaletteMenu &&
+          createPortal(paletteMenuContent, document.body)}
+
+        {/* Typography Menu Portal */}
+        {isMounted &&
+          showTypographyMenu &&
+          createPortal(typographyMenuContent, document.body)}
+
+        {/* Color Picker Tooltip for Custom Colors */}
+        {isMounted && activeColorPicker && (
+          <ColorPickerTooltip
+            color={customColors[activeColorPicker.index]}
+            onChange={(color) =>
+              handleColorChange(activeColorPicker.index, color)
+            }
+            onClose={closeColorPicker}
+            anchorRect={activeColorPicker.rect}
+          />
+        )}
+
+        {/* Color Picker Tooltip for Typography Color */}
+        {isMounted && showTypoColorPicker && (
+          <ColorPickerTooltip
             color={typography.color}
             onChange={(color) => handleTypographyUpdate("color", color)}
+            onClose={closeTypoColorPicker}
+            anchorRect={showTypoColorPicker.rect}
           />
-          <div className={styles.colorHexValue}>
-            <input
-              type="text"
-              value={typography.color}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
-                  handleTypographyUpdate("color", val);
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              maxLength={7}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  return (
-    <>
-      <div
-        className={`${styles.actionButtons} ${
-          orientation === "horizontal" ? styles.horizontal : styles.vertical
-        }`}
-      >
-        {showScreenshot && (
-          <button
-            className={styles.actionBtn}
-            title="Screenshot"
-            onClick={onScreenshot}
-          >
-            <Camera size={18} />
-          </button>
         )}
+      </>
+    );
+  },
+);
 
-        {showColors && (
-          <button
-            ref={paletteButtonRef}
-            className={`${styles.actionBtn} ${showPaletteMenu ? styles.active : ""}`}
-            title="Colors"
-            onClick={togglePaletteMenu}
-          >
-            <Palette size={18} />
-          </button>
-        )}
-
-        {showFont && (
-          <button
-            ref={typographyButtonRef}
-            className={`${styles.actionBtn} ${showTypographyMenu ? styles.active : ""}`}
-            title="Typography"
-            onClick={toggleTypographyMenu}
-          >
-            <Type size={18} />
-          </button>
-        )}
-
-        {showSave && (
-          <button
-            className={styles.actionBtn}
-            title="Save Chart"
-            onClick={onSave}
-          >
-            <Bookmark size={18} />
-          </button>
-        )}
-
-        {showDownload && (
-          <button
-            className={styles.actionBtn}
-            title="Download"
-            onClick={onDownload}
-          >
-            <Download size={18} />
-          </button>
-        )}
-
-        {showFullscreen && (
-          <button
-            className={styles.actionBtn}
-            title="Fullscreen"
-            onClick={onFullscreen}
-          >
-            <Maximize2 size={18} />
-          </button>
-        )}
-      </div>
-
-      {/* Palette Menu Portal */}
-      {isMounted &&
-        showPaletteMenu &&
-        createPortal(<PaletteMenu />, document.body)}
-
-      {/* Typography Menu Portal */}
-      {isMounted &&
-        showTypographyMenu &&
-        createPortal(<TypographyMenu />, document.body)}
-    </>
-  );
-};
+ChartActions.displayName = "ChartActions";

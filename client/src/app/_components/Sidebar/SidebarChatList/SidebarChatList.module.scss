@@ -32,6 +32,24 @@
             transform: translateX(0);
         }
     }
+
+    &.active {
+        background: var(--color-primary-soft, rgba(92, 133, 255, 0.1));
+        color: var(--color-primary);
+
+        .chatArrow {
+            opacity: 1;
+            width: 14px;
+            margin-right: 8px;
+            transform: translateX(0);
+            color: var(--color-primary);
+        }
+
+        .chatTitle {
+            transform: translateX(0);
+            color: var(--color-primary);
+        }
+    }
 }
 
 .chatArrow {
@@ -76,5 +94,10 @@
 
     &:hover {
         background: var(--color-hover);
+    }
+
+    &.active {
+        background: var(--color-primary-soft, rgba(92, 133, 255, 0.1));
+        color: var(--color-primary);
     }
 }

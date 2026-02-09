@@ -103,3 +103,11 @@
     gap: 8px;
     width: 100%;
 }
+
+.loadingChats,
+.noChats {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--color-text-soft);
+    text-align: center;
+}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useChatStore } from "@/store/useChatStore";
+import { useChatStore, selectActiveChat } from "@/store/useChatStore";
 import { isValidChatId } from "@/lib/generateId";
 import { ProcessingLoader } from "@/app/_components";
 import { MessageSquare, Hash, ArrowLeft } from "lucide-react";
@@ -21,21 +21,30 @@ const ChatInterface = dynamic(
 
 export default function ChatDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const chatId = params.chatId as string;
 
-  const { chats, activeChat, setActiveChat } = useChatStore();
+  // Chat store
+  const { chats, isLoadingChats, setActiveChat, fetchChats } = useChatStore();
+  const activeChat = useChatStore(selectActiveChat);
 
+  // Fetch chats if not loaded yet
   useEffect(() => {
-    // Find and set the active chat
-    const chat = chats.find((c) => c.id === chatId);
-    if (chat) {
-      setActiveChat(chat);
+    if (chats.length === 0 && !isLoadingChats) {
+      fetchChats();
     }
-  }, [chatId, chats, setActiveChat]);
+  }, [chats.length, isLoadingChats, fetchChats]);
 
-  // Find the chat from store
-  const chat = chats.find((c) => c.id === chatId);
+  // Set active chat when chatId changes
+  useEffect(() => {
+    if (chatId) {
+      setActiveChat(chatId);
+    }
+  }, [chatId, setActiveChat]);
+
+  // Show loading while fetching chats
+  if (isLoadingChats) {
+    return <ProcessingLoader text="Loading chat..." size="medium" />;
+  }
 
   // Validate chat ID format
   if (!isValidChatId(chatId)) {
@@ -54,8 +63,8 @@ export default function ChatDetailPage() {
     );
   }
 
-  // Chat not found
-  if (!chat) {
+  // Chat not found (after loading)
+  if (!activeChat && chats.length > 0) {
     return (
       <div className={styles.errorState}>
         <div className={styles.errorIcon}>

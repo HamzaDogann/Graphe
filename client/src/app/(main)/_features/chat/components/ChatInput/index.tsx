@@ -9,9 +9,13 @@ import styles from "./ChatInput.module.scss";
 
 interface ChatInputProps {
   onSendMessage?: (message: string) => void;
+  isLoading?: boolean;
 }
 
-export const ChatInput = ({ onSendMessage }: ChatInputProps) => {
+export const ChatInput = ({
+  onSendMessage,
+  isLoading = false,
+}: ChatInputProps) => {
   const [inputValue, setInputValue] = useState("");
   const [isAnimating, setIsAnimating] = useState(true); // Border animasyonu için
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,6 +67,7 @@ export const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
   // Handle send message
   const handleSend = () => {
+    if (isLoading) return;
     const trimmed = inputValue.trim();
     if (trimmed && onSendMessage) {
       onSendMessage(trimmed);
@@ -92,7 +97,7 @@ export const ChatInput = ({ onSendMessage }: ChatInputProps) => {
         {!isListening && (
           <textarea
             ref={textareaRef}
-            placeholder="Ask anything..."
+            placeholder="Generate anything..."
             className={styles.inputField}
             autoFocus
             rows={1}
@@ -114,7 +119,11 @@ export const ChatInput = ({ onSendMessage }: ChatInputProps) => {
                 <button className={styles.micBtn} onClick={startListening}>
                   <Mic size={20} />
                 </button>
-                <button className={styles.sendBtn} onClick={handleSend}>
+                <button
+                  className={`${styles.sendBtn} ${isLoading ? styles.disabled : ""}`}
+                  onClick={handleSend}
+                  disabled={isLoading}
+                >
                   <ArrowUp size={18} />
                 </button>
               </div>

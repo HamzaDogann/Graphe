@@ -1,18 +1,27 @@
 "use client";
 
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
 import {
   ChartActions,
   COLOR_PALETTES,
   TypographySettings,
+  DEFAULT_TYPOGRAPHY,
 } from "../ChartActions";
 import { BarChartProps, DEFAULT_CHART_COLORS } from "@/types/chart";
 import styles from "./BarChart.module.scss";
 
 // Dynamic import for ApexCharts (SSR disabled)
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+// Helper to compute initial colors
+const computeColors = (colorScheme: string[], dataLength: number): string[] => {
+  if (colorScheme.length >= dataLength) {
+    return colorScheme.slice(0, dataLength);
+  }
+  return [...colorScheme, ...COLOR_PALETTES.default].slice(0, dataLength);
+};
 
 export const BarChart = ({
   data,
@@ -29,18 +38,16 @@ export const BarChart = ({
   onDataPointClick,
 }: BarChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [colors, setColors] = useState<string[]>(
-    colorScheme.length >= data.length
-      ? colorScheme.slice(0, data.length)
-      : [...colorScheme, ...COLOR_PALETTES.default].slice(0, data.length),
+  const [colors, setColors] = useState<string[]>(() =>
+    computeColors(colorScheme, data.length),
   );
-  const [typography, setTypography] = useState<TypographySettings>({
-    fontSize: 14,
-    color: "#323039",
-    isBold: false,
-    isItalic: false,
-    isUnderline: false,
-  });
+  const [typography, setTypography] =
+    useState<TypographySettings>(DEFAULT_TYPOGRAPHY);
+
+  // Sync colors when colorScheme prop changes
+  useEffect(() => {
+    setColors(computeColors(colorScheme, data.length));
+  }, [colorScheme, data.length]);
 
   // Extract series and categories
   const series = useMemo(
@@ -84,7 +91,7 @@ export const BarChart = ({
             }
           },
         },
-        fontFamily: "inherit",
+        fontFamily: typography.fontFamily,
       },
       colors: colors,
       plotOptions: {
@@ -109,15 +116,21 @@ export const BarChart = ({
         },
         offsetY: isHorizontal ? 0 : -20,
         style: {
-          fontSize: "12px",
-          fontWeight: 600,
-          colors: isHorizontal ? ["#fff"] : ["#323039"],
+          fontSize: `${typography.fontSize}px`,
+          fontWeight: typography.isBold ? 700 : 600,
+          fontFamily: typography.fontFamily,
+          colors: isHorizontal ? ["#fff"] : [typography.color],
         },
       },
       legend: {
         show: showLegend,
         position: "bottom",
-        fontSize: "13px",
+        fontSize: `${typography.fontSize}px`,
+        fontWeight: typography.isBold ? 700 : 500,
+        fontFamily: typography.fontFamily,
+        labels: {
+          colors: typography.color,
+        },
         markers: {
           size: 6,
           strokeWidth: 0,
@@ -128,8 +141,9 @@ export const BarChart = ({
         labels: {
           show: showLabels,
           style: {
-            fontSize: "12px",
-            colors: "#6b7280",
+            fontSize: `${typography.fontSize}px`,
+            fontFamily: typography.fontFamily,
+            colors: typography.color,
           },
           rotate: isHorizontal ? 0 : -45,
           rotateAlways: !isHorizontal && categories.length > 6,
@@ -145,8 +159,9 @@ export const BarChart = ({
         labels: {
           show: showLabels,
           style: {
-            fontSize: "12px",
-            colors: "#6b7280",
+            fontSize: `${typography.fontSize}px`,
+            fontFamily: typography.fontFamily,
+            colors: typography.color,
           },
           formatter: (val: number) => {
             if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
@@ -172,6 +187,10 @@ export const BarChart = ({
       },
       tooltip: {
         enabled: true,
+        style: {
+          fontSize: `${typography.fontSize}px`,
+          fontFamily: typography.fontFamily,
+        },
         y: {
           formatter: (val: number) => val.toLocaleString(),
         },
@@ -218,28 +237,25 @@ export const BarChart = ({
       isHorizontal,
       data,
       onDataPointClick,
+      typography,
     ],
   );
 
-  // Screenshot handler with SVG filter
+  // Screenshot handler using html2canvas
   const handleScreenshot = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current, {
+      const canvas = await html2canvas(chartRef.current, {
         backgroundColor: "#ffffff",
-        pixelRatio: 2,
-        cacheBust: true,
-        filter: (node) => {
-          const exclusionClasses = [
-            "apexcharts-tooltip",
-            "apexcharts-xaxistooltip",
-          ];
-          return !exclusionClasses.some((cls) => node.classList?.contains(cls));
-        },
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+
       const link = document.createElement("a");
       link.download = `${title.replace(/\s+/g, "_")}_chart.png`;
-      link.href = dataUrl;
+      link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (error) {
       console.error("Failed to capture chart:", error);
@@ -276,10 +292,25 @@ export const BarChart = ({
   const titleStyle = useMemo(
     () => ({
       fontSize: `${typography.fontSize + 4}px`,
+      fontFamily: typography.fontFamily,
       color: typography.color,
       fontWeight: typography.isBold ? 700 : 600,
-      fontStyle: typography.isItalic ? "italic" : "normal",
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
       textDecoration: typography.isUnderline ? "underline" : "none",
+    }),
+    [typography],
+  );
+
+  const descriptionStyle = useMemo(
+    () => ({
+      fontSize: `${typography.fontSize}px`,
+      fontFamily: typography.fontFamily,
+      color: typography.color,
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
     }),
     [typography],
   );
@@ -294,13 +325,7 @@ export const BarChart = ({
           </h3>
         )}
         {description && (
-          <p
-            className={styles.chartDescription}
-            style={{
-              color: typography.color,
-              fontStyle: typography.isItalic ? "italic" : "normal",
-            }}
-          >
+          <p className={styles.chartDescription} style={descriptionStyle}>
             {description}
           </p>
         )}

@@ -2,8 +2,12 @@
 
 import { useRef, useState, useMemo, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { toPng } from "html-to-image";
-import { ChartActions, TypographySettings } from "../ChartActions";
+import html2canvas from "html2canvas";
+import {
+  ChartActions,
+  TypographySettings,
+  DEFAULT_TYPOGRAPHY,
+} from "../ChartActions";
 import { TableChartProps } from "@/types/chart";
 import styles from "./TableChart.module.scss";
 
@@ -21,13 +25,8 @@ export const TableChart = ({
   const chartRef = useRef<HTMLDivElement>(null);
 
   // Typography state
-  const [typography, setTypography] = useState<TypographySettings>({
-    fontSize: 14,
-    color: "#323039",
-    isBold: false,
-    isItalic: false,
-    isUnderline: false,
-  });
+  const [typography, setTypography] =
+    useState<TypographySettings>(DEFAULT_TYPOGRAPHY);
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -99,18 +98,21 @@ export const TableChart = ({
     return String(value);
   };
 
-  // Screenshot handler with enhanced options
+  // Screenshot handler using html2canvas
   const handleScreenshot = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current, {
+      const canvas = await html2canvas(chartRef.current, {
         backgroundColor: "#ffffff",
-        pixelRatio: 2,
-        cacheBust: true,
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+
       const link = document.createElement("a");
       link.download = `${title.replace(/\s+/g, "_")}_table.png`;
-      link.href = dataUrl;
+      link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (error) {
       console.error("Failed to capture table:", error);
@@ -130,10 +132,34 @@ export const TableChart = ({
   const titleStyle = useMemo(
     () => ({
       fontSize: `${typography.fontSize + 4}px`,
+      fontFamily: typography.fontFamily,
       color: typography.color,
       fontWeight: typography.isBold ? 700 : 600,
-      fontStyle: typography.isItalic ? "italic" : "normal",
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
       textDecoration: typography.isUnderline ? "underline" : "none",
+    }),
+    [typography],
+  );
+
+  const descriptionStyle = useMemo(
+    () => ({
+      fontSize: `${typography.fontSize}px`,
+      fontFamily: typography.fontFamily,
+      color: typography.color,
+      fontStyle: typography.isItalic
+        ? ("italic" as const)
+        : ("normal" as const),
+    }),
+    [typography],
+  );
+
+  const tableStyle = useMemo(
+    () => ({
+      fontSize: `${typography.fontSize}px`,
+      fontFamily: typography.fontFamily,
+      color: typography.color,
     }),
     [typography],
   );
@@ -148,20 +174,14 @@ export const TableChart = ({
           </h3>
         )}
         {description && (
-          <p
-            className={styles.chartDescription}
-            style={{
-              color: typography.color,
-              fontStyle: typography.isItalic ? "italic" : "normal",
-            }}
-          >
+          <p className={styles.chartDescription} style={descriptionStyle}>
             {description}
           </p>
         )}
 
         {/* Table */}
         <div className={styles.tableContainer}>
-          <table className={styles.table}>
+          <table className={styles.table} style={tableStyle}>
             <thead>
               <tr>
                 {showRowNumbers && (
