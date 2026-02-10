@@ -1,18 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { ChartType } from "@/constants/chartTypes";
 import {
   ChartRenderData,
   ChartDataPoint,
   DEFAULT_CHART_COLORS,
+  ChartStylingUpdate,
 } from "@/types/chart";
 import type { ChartStyling } from "@/types/chat";
+import { useChatStore } from "@/store/useChatStore";
 import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
 import { TableChart } from "../TableChart";
 import styles from "./ChartRenderer.module.scss";
+
+// Debounce delay for saving styling (2 seconds)
+const DEBOUNCE_DELAY = 2000;
 
 interface ChartRendererProps {
   renderData: ChartRenderData;
@@ -33,15 +38,79 @@ export const ChartRenderer = ({
   colorScheme,
   onDataPointClick,
 }: ChartRendererProps) => {
-  const { type, config, processedData, originalData } = renderData;
+  const { type, config, processedData } = renderData;
+  const updateMessageStyling = useChatStore(
+    (state) => state.updateMessageStyling,
+  );
 
-  // Use stored styling colors if available, otherwise use prop or default
-  const effectiveColorScheme = useMemo(() => {
-    if (storedStyling?.colors?.length) {
-      return storedStyling.colors;
+  // Local styling state - immediately reflects user changes
+  const [localColors, setLocalColors] = useState<string[]>(
+    storedStyling?.colors || colorScheme || DEFAULT_CHART_COLORS,
+  );
+  const [localTypography, setLocalTypography] = useState<
+    ChartStyling["typography"] | undefined
+  >(storedStyling?.typography);
+
+  // Track pending changes for debounced save
+  const pendingChangesRef = useRef<Partial<ChartStyling>>({});
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // NOT: storedStyling ile sync YAPILMIYOR
+  // Initial değerler useState'te set ediliyor
+  // Sonraki değişiklikler sadece local state'ı güncelliyor
+  // DB'ye kaydet ama DB'den geri gelen değerle state güncelleme
+  // Bu sayede client-DB race condition önlenir
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        // Save any pending changes before unmount
+        if (messageId && Object.keys(pendingChangesRef.current).length > 0) {
+          updateMessageStyling(messageId, pendingChangesRef.current);
+        }
+      }
+    };
+  }, [messageId, updateMessageStyling]);
+
+  // Debounced save function
+  const debouncedSave = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-    return colorScheme || DEFAULT_CHART_COLORS;
-  }, [storedStyling?.colors, colorScheme]);
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (messageId && Object.keys(pendingChangesRef.current).length > 0) {
+        updateMessageStyling(messageId, pendingChangesRef.current);
+        pendingChangesRef.current = {};
+      }
+    }, DEBOUNCE_DELAY);
+  }, [messageId, updateMessageStyling]);
+
+  // Handle styling changes from charts
+  const handleStylingChange = useCallback(
+    (styling: ChartStylingUpdate) => {
+      // Update local state immediately (instant UI feedback)
+      if (styling.colors) {
+        setLocalColors(styling.colors);
+        pendingChangesRef.current.colors = styling.colors;
+      }
+      if (styling.typography) {
+        setLocalTypography(styling.typography);
+        pendingChangesRef.current.typography = styling.typography;
+      }
+
+      // Schedule debounced save to DB
+      debouncedSave();
+    },
+    [debouncedSave],
+  );
+
+  // Effective color scheme for rendering
+  const effectiveColorScheme = useMemo(() => {
+    return localColors.length > 0 ? localColors : DEFAULT_CHART_COLORS;
+  }, [localColors]);
 
   // Build chart props based on type
   const chartElement = useMemo(() => {
@@ -57,6 +126,8 @@ export const ChartRenderer = ({
             animate={animate}
             showPercentage={true}
             onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
           />
         );
 
@@ -72,6 +143,8 @@ export const ChartRenderer = ({
             orientation="vertical"
             showValues={true}
             onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
           />
         );
 
@@ -88,6 +161,8 @@ export const ChartRenderer = ({
             showGrid={true}
             curved={true}
             onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
           />
         );
 
@@ -135,6 +210,8 @@ export const ChartRenderer = ({
     showLegend,
     animate,
     onDataPointClick,
+    handleStylingChange,
+    localTypography,
   ]);
 
   return <div className={styles.chartRenderer}>{chartElement}</div>;

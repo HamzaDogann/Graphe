@@ -1,0 +1,187 @@
+/* --- PORTAL & MODAL STYLES --- */
+.portalWrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    pointer-events: auto;
+}
+
+.modalPositioner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 100000;
+    padding: 20px;
+}
+
+.modalContent {
+    pointer-events: auto;
+    background: #ffffff;
+    width: 95%;
+    max-width: 420px;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 28px 28px;
+    position: relative;
+    text-align: center;
+}
+
+/* Close Button */
+.closeBtn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+}
+
+/* Icon Wrapper */
+.iconWrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+
+    &.danger {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    &.warning {
+        background: #fffbeb;
+        color: #f59e0b;
+    }
+
+    &.info {
+        background: #eff6ff;
+        color: #3b82f6;
+    }
+}
+
+/* Title */
+.title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px;
+    line-height: 1.4;
+}
+
+/* Message */
+.message {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0 0 24px;
+    line-height: 1.6;
+    max-width: 320px;
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.cancelBtn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+
+    &:hover:not(:disabled) {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.confirmBtn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    color: #fff;
+
+    &.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+        }
+    }
+
+    &.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+        }
+    }
+
+    &.info {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        }
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}

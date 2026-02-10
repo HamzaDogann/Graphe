@@ -41,10 +41,13 @@ export function Topbar() {
     if (!activeChat) return;
 
     const trimmedValue = editValue.trim();
-    if (trimmedValue && trimmedValue !== activeChat.title) {
-      await updateChatTitle(activeChat.id, trimmedValue);
-    }
+    // Önce input'u kapat - optimistic UX
     setIsEditing(false);
+
+    if (trimmedValue && trimmedValue !== activeChat.title) {
+      // Arka planda DB'ye kaydet (store zaten optimistic update yapıyor)
+      updateChatTitle(activeChat.id, trimmedValue);
+    }
   }, [activeChat, editValue, updateChatTitle]);
 
   // Cancel editing

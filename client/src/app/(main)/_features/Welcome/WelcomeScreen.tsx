@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Upload, BarChart3, LayoutDashboard } from "lucide-react";
 import { useDatasetStore } from "@/store/useDatasetStore";
 import { useUserStore } from "@/store/useUserStore";
-import { useChatStore } from "@/store/useChatStore";
 import { ProcessingLoader } from "@/app/_components";
 
 import styles from "./WelcomeScreen.module.scss";
@@ -13,7 +12,6 @@ import styles from "./WelcomeScreen.module.scss";
 export default function WelcomeScreen() {
   const parseFile = useDatasetStore((state) => state.parseFile);
   const { user } = useUserStore();
-  const createChat = useChatStore((state) => state.createChat);
   const router = useRouter();
 
   const [showIntro, setShowIntro] = useState(true);
@@ -81,16 +79,8 @@ export default function WelcomeScreen() {
       // Parse the file and store data before navigation
       await parseFile(file);
 
-      // Create a new chat via API
-      const newChat = await createChat();
-
-      if (newChat) {
-        // Navigate to the new chat page
-        router.push(`/dashboard/chats/${newChat.id}`);
-      } else {
-        // Handle error - still navigate but without a chat ID
-        setIsUploading(false);
-      }
+      // Navigate to new chat page - chat will be created on first message (lazy creation)
+      router.push("/dashboard/chats/new");
     }
   };
 

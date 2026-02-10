@@ -30,17 +30,27 @@ export const LineChart = ({
   curved = true,
   fillArea = false,
   onDataPointClick,
+  onStylingChange,
+  initialTypography,
 }: LineChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() => [
     colorScheme[0] || COLOR_PALETTES.default[0],
   ]);
-  const [typography, setTypography] =
-    useState<TypographySettings>(DEFAULT_TYPOGRAPHY);
+  const [typography, setTypography] = useState<TypographySettings>(
+    initialTypography || DEFAULT_TYPOGRAPHY,
+  );
 
-  // Sync colors when colorScheme prop changes
+  // Track previous colorScheme to avoid infinite loops
+  const prevColorSchemeRef = useRef<string>(JSON.stringify(colorScheme));
+
+  // Sync colors when colorScheme prop changes (with deep equality check)
   useEffect(() => {
-    setColors([colorScheme[0] || COLOR_PALETTES.default[0]]);
+    const schemeKey = JSON.stringify(colorScheme);
+    if (schemeKey !== prevColorSchemeRef.current) {
+      prevColorSchemeRef.current = schemeKey;
+      setColors([colorScheme[0] || COLOR_PALETTES.default[0]]);
+    }
   }, [colorScheme]);
 
   // Extract series and categories
@@ -259,14 +269,25 @@ export const LineChart = ({
   }, [title]);
 
   // Typography change handler
-  const handleTypographyChange = useCallback((settings: TypographySettings) => {
-    setTypography(settings);
-  }, []);
+  const handleTypographyChange = useCallback(
+    (settings: TypographySettings) => {
+      setTypography(settings);
+      // Notify parent of styling change
+      onStylingChange?.({ typography: settings });
+    },
+    [onStylingChange],
+  );
 
   // Color change handler
-  const handleColorChange = useCallback((newColors: string[]) => {
-    setColors([newColors[0] || COLOR_PALETTES.default[0]]);
-  }, []);
+  const handleColorChange = useCallback(
+    (newColors: string[]) => {
+      const finalColors = [newColors[0] || COLOR_PALETTES.default[0]];
+      setColors(finalColors);
+      // Notify parent of styling change
+      onStylingChange?.({ colors: finalColors });
+    },
+    [onStylingChange],
+  );
 
   // Save handler
   const handleSave = useCallback(() => {

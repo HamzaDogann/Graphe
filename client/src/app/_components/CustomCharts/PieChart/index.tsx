@@ -36,17 +36,27 @@ export const PieChart = ({
   innerRadius = 55,
   showPercentage = true,
   onDataPointClick,
+  onStylingChange,
+  initialTypography,
 }: PieChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() =>
     computeColors(colorScheme, data.length),
   );
-  const [typography, setTypography] =
-    useState<TypographySettings>(DEFAULT_TYPOGRAPHY);
+  const [typography, setTypography] = useState<TypographySettings>(
+    initialTypography || DEFAULT_TYPOGRAPHY,
+  );
 
-  // Sync colors when colorScheme prop changes
+  // Track previous colorScheme to avoid infinite loops
+  const prevColorSchemeRef = useRef<string>(JSON.stringify(colorScheme));
+
+  // Sync colors when colorScheme prop changes (with deep equality check)
   useEffect(() => {
-    setColors(computeColors(colorScheme, data.length));
+    const schemeKey = JSON.stringify(colorScheme);
+    if (schemeKey !== prevColorSchemeRef.current) {
+      prevColorSchemeRef.current = schemeKey;
+      setColors(computeColors(colorScheme, data.length));
+    }
   }, [colorScheme, data.length]);
 
   // Extract series and labels from data
@@ -215,9 +225,14 @@ export const PieChart = ({
   }, [title]);
 
   // Typography change handler
-  const handleTypographyChange = useCallback((settings: TypographySettings) => {
-    setTypography(settings);
-  }, []);
+  const handleTypographyChange = useCallback(
+    (settings: TypographySettings) => {
+      setTypography(settings);
+      // Notify parent of styling change
+      onStylingChange?.({ typography: settings });
+    },
+    [onStylingChange],
+  );
 
   // Color change handler
   const handleColorChange = useCallback(
@@ -230,9 +245,12 @@ export const PieChart = ({
           ],
         );
       }
-      setColors(extendedColors.slice(0, data.length));
+      const finalColors = extendedColors.slice(0, data.length);
+      setColors(finalColors);
+      // Notify parent of styling change
+      onStylingChange?.({ colors: finalColors });
     },
-    [data.length],
+    [data.length, onStylingChange],
   );
 
   // Save handler

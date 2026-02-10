@@ -120,7 +120,7 @@ export const ChatInput = ({
                   <Mic size={20} />
                 </button>
                 <button
-                  className={`${styles.sendBtn} ${isLoading ? styles.disabled : ""}`}
+                  className={styles.sendBtn}
                   onClick={handleSend}
                   disabled={isLoading}
                 >

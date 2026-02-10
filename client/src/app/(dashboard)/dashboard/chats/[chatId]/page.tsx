@@ -24,8 +24,19 @@ export default function ChatDetailPage() {
   const chatId = params.chatId as string;
 
   // Chat store
-  const { chats, isLoadingChats, setActiveChat, fetchChats } = useChatStore();
+  const {
+    chats,
+    isLoadingChats,
+    activeChatId,
+    setActiveChat,
+    fetchChats,
+    isUnsavedChat,
+  } = useChatStore();
   const activeChat = useChatStore(selectActiveChat);
+  const isUnsaved = isUnsavedChat(chatId);
+
+  // Geçiş durumu - activeChatId henüz chatId ile eşleşmedi
+  const isTransitioning = chatId !== "new" && activeChatId !== chatId;
 
   // Fetch chats if not loaded yet
   useEffect(() => {
@@ -36,13 +47,18 @@ export default function ChatDetailPage() {
 
   // Set active chat when chatId changes
   useEffect(() => {
-    if (chatId) {
+    if (chatId && chatId !== "new") {
       setActiveChat(chatId);
     }
   }, [chatId, setActiveChat]);
 
-  // Show loading while fetching chats
-  if (isLoadingChats) {
+  // "new" should be handled by /chats/new route, but guard against edge cases
+  if (chatId === "new") {
+    return <ChatInterface />;
+  }
+
+  // Show loading while transitioning between chats or fetching
+  if (isTransitioning || (isLoadingChats && !isUnsaved)) {
     return <ProcessingLoader text="Loading chat..." size="medium" />;
   }
 
@@ -63,8 +79,8 @@ export default function ChatDetailPage() {
     );
   }
 
-  // Chat not found (after loading)
-  if (!activeChat && chats.length > 0) {
+  // Chat not found (after loading and transition complete) - skip for unsaved chats
+  if (!activeChat && chats.length > 0 && !isUnsaved) {
     return (
       <div className={styles.errorState}>
         <div className={styles.errorIcon}>

@@ -37,10 +37,31 @@ const isLoadingMessage = (msg: StoreMessage): boolean => {
 
 export const MessageList = ({ messages }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef<number>(0);
+  const prevLastMessageIdRef = useRef<string | null>(null);
 
-  // Mesaj sayısı değiştiğinde en alta kaydır
+  // Scroll sadece yeni mesaj eklendiğinde (sayı arttığında veya son mesaj değiştiğinde)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const currentCount = messages.length;
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageId = lastMessage
+      ? isStoreMessage(lastMessage)
+        ? lastMessage.id
+        : lastMessage.id
+      : null;
+
+    const shouldScroll =
+      currentCount > prevMessageCountRef.current ||
+      (lastMessageId !== prevLastMessageIdRef.current &&
+        prevLastMessageIdRef.current?.startsWith("temp-loading-"));
+
+    if (shouldScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Önceki değerleri güncelle
+    prevMessageCountRef.current = currentCount;
+    prevLastMessageIdRef.current = lastMessageId;
   }, [messages]);
 
   return (

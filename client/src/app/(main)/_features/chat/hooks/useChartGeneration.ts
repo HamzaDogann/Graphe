@@ -23,9 +23,15 @@ interface GenerateResponse {
   };
 }
 
+// Generation result type
+interface GenerateResult {
+  data: ChartRenderData | null;
+  error: string | null;
+}
+
 // Hook return type
 interface UseChartGenerationReturn {
-  generateChart: (userPrompt: string) => Promise<ChartRenderData | null>;
+  generateChart: (userPrompt: string) => Promise<GenerateResult>;
   isGenerating: boolean;
   error: string | null;
   lastConfig: AIChartConfig | null;
@@ -40,16 +46,18 @@ export const useChartGeneration = (): UseChartGenerationReturn => {
   const { parsedData } = useDatasetStore();
 
   const generateChart = useCallback(
-    async (userPrompt: string): Promise<ChartRenderData | null> => {
+    async (userPrompt: string): Promise<GenerateResult> => {
       // Validate
       if (!userPrompt.trim()) {
-        setError("Please enter a prompt");
-        return null;
+        const err = "Please enter a prompt";
+        setError(err);
+        return { data: null, error: err };
       }
 
       if (!parsedData || !parsedData.rows || parsedData.rows.length === 0) {
-        setError("No dataset loaded. Please upload a dataset first.");
-        return null;
+        const err = "No dataset loaded. Please upload a dataset first.";
+        setError(err);
+        return { data: null, error: err };
       }
 
       setIsGenerating(true);
@@ -74,7 +82,19 @@ export const useChartGeneration = (): UseChartGenerationReturn => {
         const result: GenerateResponse = await response.json();
 
         if (!result.success || !result.config) {
-          throw new Error(result.error || "Failed to generate chart configuration");
+          // Parse error for better user message
+          let errorMessage = result.error || "Failed to generate chart configuration";
+          
+          // Check for known API errors
+          if (errorMessage.includes("503") || errorMessage.includes("UNAVAILABLE") || errorMessage.includes("high demand")) {
+            errorMessage = "AI service is temporarily busy. Please try again in a few seconds.";
+          } else if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+            errorMessage = "Rate limit reached. Please wait a moment and try again.";
+          } else if (errorMessage.includes("500") || errorMessage.includes("INTERNAL")) {
+            errorMessage = "AI service encountered an error. Please try again.";
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const config = result.config;
@@ -98,12 +118,12 @@ export const useChartGeneration = (): UseChartGenerationReturn => {
           originalData: parsedData.rows || [],
         };
 
-        return renderData;
+        return { data: renderData, error: null };
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
         setError(errorMessage);
         console.error("Chart generation error:", err);
-        return null;
+        return { data: null, error: errorMessage };
       } finally {
         setIsGenerating(false);
       }

@@ -2,7 +2,8 @@
  * useChat Hook
  * 
  * Combines useChatStore with useChartGeneration for a complete chat experience.
- * This hook manages the chat flow: send message → generate chart → save to DB.
+ * Implements lazy chat creation - chat is only created when first message is sent.
+ * All operations are optimistic - UI updates instantly, DB syncs in background.
  */
 
 import { useCallback, useEffect } from "react";
@@ -15,6 +16,7 @@ interface UseChatReturn {
   // State
   messages: Message[];
   isLoading: boolean;
+  isLoadingMessages: boolean;
   isGenerating: boolean;
   error: string | null;
 
@@ -25,6 +27,7 @@ interface UseChatReturn {
   // Chat info
   activeChatId: string | null;
   hasMessages: boolean;
+  isNewChat: boolean; // URL'de chatId yok (yeni chat bekliyor)
 }
 
 export const useChat = (): UseChatReturn => {
@@ -39,10 +42,14 @@ export const useChat = (): UseChatReturn => {
     isSendingMessage,
     error: storeError,
     setActiveChat,
-    createChat,
-    addUserMessage,
+    createLocalChat,
+    addLocalUserMessage,
     addLocalLoadingMessage,
-    addAssistantMessage,
+    addLocalAssistantMessage,
+    updateLocalMessage,
+    saveChatToDB,
+    saveUserMessageToDB,
+    saveAssistantMessageToDB,
     clearError: storeClearError,
     convertToStoredChartData,
   } = useChatStore();
@@ -55,12 +62,18 @@ export const useChat = (): UseChatReturn => {
     clearError: clearChartError,
   } = useChartGeneration();
 
-  // Set active chat when URL changes
+  // Set active chat when URL changes (only for existing chats)
   useEffect(() => {
-    if (chatId && chatId !== activeChatId) {
+    if (chatId && chatId !== activeChatId && chatId !== "new") {
       setActiveChat(chatId);
     }
   }, [chatId, activeChatId, setActiveChat]);
+
+  // Chat geçişi sırasında loading göster (flash önleme)
+  const isTransitioning = !!(chatId && chatId !== "new" && chatId !== activeChatId);
+
+  // URL'deki chatId ile activeChatId eşleşmiyorsa mesajları gösterme
+  const safeMessages = isTransitioning ? [] : messages;
 
   // Combined error
   const error = storeError || chartError;
@@ -71,74 +84,126 @@ export const useChat = (): UseChatReturn => {
     clearChartError();
   }, [storeClearError, clearChartError]);
 
-  /**
-   * Main message sending flow:
-   * 1. Create chat if needed
-   * 2. Add user message to DB
-   * 3. Show loading state
-   * 4. Generate chart with AI
-   * 5. Save assistant response to DB
-   */
+ 
   const sendMessage = useCallback(
     async (content: string) => {
       let currentChatId = activeChatId;
+      const isNewChat = !currentChatId;
 
-      // 1. Create chat if needed
-      if (!currentChatId) {
-        const newChat = await createChat();
-        if (!newChat) return;
-        currentChatId = newChat.id;
+      // ===== NEW CHAT FLOW =====
+      if (isNewChat) {
+        // Step 1: Create local chat with REAL ID (c-xxx format, not temp)
+        currentChatId = createLocalChat();
+
+        // Step 2: Update URL with real ID immediately (no re-render)
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `/dashboard/chats/${currentChatId}`
+        );
+
+        // Step 3: Add local user message
+        const userMessage = addLocalUserMessage(content, currentChatId!);
+        if (!userMessage) return;
+
+        // Step 4: Add loading message
+        const loadingId = addLocalLoadingMessage(currentChatId!);
+
+        // Step 5: Fire-and-forget - save chat first, then user message (must be sequential)
+        saveChatToDB(currentChatId!).then(() => {
+          saveUserMessageToDB(currentChatId!, content);
+        });
+
+        // Step 6: Generate chart with AI
+        const { data: chartData, error: genError } = await generateChart(content);
+
+        // Step 7: Prepare assistant response
+        let storedChartData: StoredChartData | undefined;
+        let responseContent: string;
+
+        if (chartData) {
+          storedChartData = convertToStoredChartData(chartData);
+          responseContent = chartData.config.description || "Chart generated successfully.";
+        } else {
+          responseContent = genError || "I couldn't generate a chart for your request. Please try again.";
+        }
+
+        // Step 8: Update loading message to assistant message locally (INSTANT)
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`, // New ID to stop loading animation
+          chatId: currentChatId!,
+          role: "assistant",
+          content: responseContent,
+          chartData: storedChartData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        updateLocalMessage(loadingId, assistantMessage, currentChatId!);
+
+        // Step 9: Fire-and-forget - save assistant message to DB
+        saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData);
+
+        return;
       }
 
-      // 2. Add user message to DB
-      const userMessage = await addUserMessage(content);
+      // ===== EXISTING CHAT FLOW (OPTIMIZED) =====
+      // All operations are instant on client, DB syncs in background
+      
+      // Step 1: Add local user message (instant)
+      const userMessage = addLocalUserMessage(content, currentChatId!);
       if (!userMessage) return;
 
-      // 3. Add loading message locally
-      const loadingId = addLocalLoadingMessage();
+      // Step 2: Add loading message (instant - this shows AI loading animation)
+      const loadingId = addLocalLoadingMessage(currentChatId!);
 
-      // 4. Generate chart with AI
-      const chartData = await generateChart(content);
+      // Step 3: Fire-and-forget - save user message to DB
+      saveUserMessageToDB(currentChatId!, content);
 
-      // 5. Prepare response
+      // Step 4: Generate chart with AI
+      const { data: chartData, error: genError } = await generateChart(content);
+
+      // Step 5: Prepare response
       let storedChartData: StoredChartData | undefined;
       let responseContent: string;
 
       if (chartData) {
         storedChartData = convertToStoredChartData(chartData);
-        responseContent =
-          chartData.config.description || "Chart generated successfully.";
+        responseContent = chartData.config.description || "Chart generated successfully.";
       } else {
-        responseContent =
-          "I couldn't generate a chart for your request. Please try again with a different prompt.";
+        responseContent = genError || "I couldn't generate a chart for your request. Please try again.";
       }
 
-      // 6. Save to database and replace loading message in one step
-      await addAssistantMessage(
-        responseContent,
-        storedChartData,
-        loadingId // Replace loading message with saved one
-      );
+      // Step 6: Update loading message to assistant message locally (instant)
+      addLocalAssistantMessage(responseContent, storedChartData, loadingId, currentChatId!);
+
+      // Step 7: Fire-and-forget - save assistant message to DB
+      saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData);
     },
     [
       activeChatId,
-      createChat,
-      addUserMessage,
+      createLocalChat,
+      addLocalUserMessage,
       addLocalLoadingMessage,
+      addLocalAssistantMessage,
+      updateLocalMessage,
       generateChart,
       convertToStoredChartData,
-      addAssistantMessage,
+      saveChatToDB,
+      saveUserMessageToDB,
+      saveAssistantMessageToDB,
     ]
   );
 
   return {
-    messages,
-    isLoading: isLoadingMessages || isSendingMessage,
+    messages: safeMessages,
+    isLoading: isLoadingMessages || isSendingMessage || isTransitioning,
+    isLoadingMessages: isLoadingMessages || isTransitioning, // Geçiş sırasında da loading göster
     isGenerating,
     error,
     sendMessage,
     clearError,
     activeChatId,
-    hasMessages: messages.length > 0,
+    hasMessages: safeMessages.length > 0,
+    isNewChat: !chatId || chatId === "new",
   };
 };

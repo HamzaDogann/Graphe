@@ -72,6 +72,16 @@
     padding: 40px 0;
 }
 
+/* Loading Container for initial chat load */
+.loadingContainer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 280px);
+    padding: 40px 0;
+}
+
 /* Fixed Input Area at Bottom */
 .inputArea {
     width: 100%;

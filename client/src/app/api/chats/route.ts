@@ -57,7 +57,7 @@ export async function GET() {
 
 /**
  * POST /api/chats
- * Create a new chat
+ * Create a new chat (optionally with messages for lazy creation)
  */
 export async function POST(
   request: NextRequest
@@ -79,17 +79,41 @@ export async function POST(
     }
 
     // Parse request body
-    const body: CreateChatRequest = await request.json();
+    const body = await request.json();
+    const { id, title, messages } = body as {
+      id?: string;
+      title?: string;
+      messages?: Array<{
+        role: "user" | "assistant";
+        content: string;
+        chartData?: unknown;
+      }>;
+    };
 
-    // Generate unique chat ID
-    const chatId = generateChatId();
+    // Use client-provided ID if available, otherwise generate one
+    const chatId = id || generateChatId();
 
-    // Create new chat
+    // Create new chat with optional messages
     const chat = await prisma.chat.create({
       data: {
         id: chatId,
         userId: user.id,
-        title: body.title || null,
+        title: title || null,
+        // If messages provided, create them too (lazy creation)
+        ...(messages && messages.length > 0
+          ? {
+              messages: {
+                create: messages.map((msg) => ({
+                  role: msg.role,
+                  content: msg.content,
+                  chartData: msg.chartData ? JSON.parse(JSON.stringify(msg.chartData)) : undefined,
+                })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        messages: true,
       },
     });
 

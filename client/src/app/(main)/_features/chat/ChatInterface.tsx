@@ -10,6 +10,7 @@ import { SuggestionsGrid } from "./components/SuggestionsGrid";
 import { ChatInput } from "./components/ChatInput";
 import { DatasetModal } from "./components/DatasetModal";
 import { MessageList } from "./components/MessageList";
+import { ProcessingLoader } from "@/app/_components";
 
 // Store ve Hook importları
 import { useDatasetStore } from "@/store/useDatasetStore";
@@ -20,8 +21,14 @@ export default function ChatInterface() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Chat Hook - manages messages and API calls
-  const { messages, isLoading, isGenerating, sendMessage, hasMessages } =
-    useChat();
+  const {
+    messages,
+    isLoading,
+    isLoadingMessages,
+    isGenerating,
+    sendMessage,
+    hasMessages,
+  } = useChat();
 
   // GLOBAL STATE
   const {
@@ -69,7 +76,12 @@ export default function ChatInterface() {
       {/* Scrollable Content Area */}
       <div className={styles.scrollableContent}>
         <div className={styles.contentWrapper}>
-          {!hasMessages ? (
+          {/* Mesajlar yüklenirken loader göster (cache miss durumunda) */}
+          {isLoadingMessages ? (
+            <div className={styles.loadingContainer}>
+              <ProcessingLoader />
+            </div>
+          ) : !hasMessages ? (
             <div className={styles.upperContent}>
               <HeroSection />
               <SuggestionsGrid />
@@ -81,10 +93,12 @@ export default function ChatInterface() {
       </div>
 
       <div className={styles.inputArea}>
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading || isGenerating}
-        />
+        {!isLoadingMessages && (
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading || isGenerating}
+          />
+        )}
       </div>
 
       <DatasetModal

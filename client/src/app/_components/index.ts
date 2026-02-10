@@ -18,6 +18,8 @@ export { ProcessingLoader } from "./ProcessingLoader";
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
 export { SettingsModal } from "./SettingsModal";
+export { ConfirmationModal } from "./ConfirmationModal";
+export type { ConfirmationModalProps } from "./ConfirmationModal";
 
 // Custom Charts
 export * from "./CustomCharts";

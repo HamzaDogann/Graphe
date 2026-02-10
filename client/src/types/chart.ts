@@ -39,6 +39,19 @@ export interface ChartDataPoint {
   originalData?: Record<string, any>;
 }
 
+// Styling change callback type
+export interface ChartStylingUpdate {
+  colors?: string[];
+  typography?: {
+    fontSize: number;
+    fontFamily: string;
+    color: string;
+    isBold: boolean;
+    isItalic: boolean;
+    isUnderline: boolean;
+  };
+}
+
 // Common props for all chart components
 export interface BaseChartProps {
   data: ChartDataPoint[];
@@ -51,6 +64,15 @@ export interface BaseChartProps {
   showLabels?: boolean;
   animate?: boolean;
   onDataPointClick?: (dataPoint: ChartDataPoint) => void;
+  onStylingChange?: (styling: ChartStylingUpdate) => void;
+  initialTypography?: {
+    fontSize: number;
+    fontFamily: string;
+    color: string;
+    isBold: boolean;
+    isItalic: boolean;
+    isUnderline: boolean;
+  };
 }
 
 // Pie Chart specific props

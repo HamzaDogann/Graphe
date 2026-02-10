@@ -329,20 +329,92 @@ export const ChartActions = memo(
     const colorButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
     const typoColorBtnRef = useRef<HTMLButtonElement>(null);
 
+    // Debounce refs for parent callbacks
+    const colorDebounceRef = useRef<NodeJS.Timeout | null>(null);
+    const typographyDebounceRef = useRef<NodeJS.Timeout | null>(null);
+    const pendingColorsRef = useRef<string[] | null>(null);
+    const pendingTypographyRef = useRef<TypographySettings | null>(null);
+
     // Check if mounted (for portal)
     useEffect(() => {
       setIsMounted(true);
     }, []);
 
-    // Sync customColors when currentColors prop changes
+    // Track previous values to avoid infinite loops
+    const prevColorsRef = useRef<string>(JSON.stringify(currentColors));
+    const prevTypographyRef = useRef<string>(JSON.stringify(currentTypography));
+
+    // Sync customColors when currentColors prop changes (with deep equality check)
     useEffect(() => {
-      setCustomColors(currentColors.slice(0, colorCount));
+      const colorsKey = JSON.stringify(currentColors);
+      if (colorsKey !== prevColorsRef.current) {
+        prevColorsRef.current = colorsKey;
+        setCustomColors(currentColors.slice(0, colorCount));
+      }
     }, [currentColors, colorCount]);
 
-    // Sync typography when currentTypography prop changes
+    // Sync typography when currentTypography prop changes (with deep equality check)
     useEffect(() => {
-      setTypography(currentTypography);
+      const typoKey = JSON.stringify(currentTypography);
+      if (typoKey !== prevTypographyRef.current) {
+        prevTypographyRef.current = typoKey;
+        setTypography(currentTypography);
+      }
     }, [currentTypography]);
+
+    // Cleanup debounce timers on unmount
+    useEffect(() => {
+      return () => {
+        if (colorDebounceRef.current) {
+          clearTimeout(colorDebounceRef.current);
+          // Flush pending color changes
+          if (pendingColorsRef.current) {
+            onColorChange?.(pendingColorsRef.current);
+          }
+        }
+        if (typographyDebounceRef.current) {
+          clearTimeout(typographyDebounceRef.current);
+          // Flush pending typography changes
+          if (pendingTypographyRef.current) {
+            onTypographyChange?.(pendingTypographyRef.current);
+          }
+        }
+      };
+    }, [onColorChange, onTypographyChange]);
+
+    // Debounced color change to parent (100ms for smooth dragging)
+    const debouncedColorChange = useCallback(
+      (colors: string[]) => {
+        pendingColorsRef.current = colors;
+        if (colorDebounceRef.current) {
+          clearTimeout(colorDebounceRef.current);
+        }
+        colorDebounceRef.current = setTimeout(() => {
+          if (pendingColorsRef.current) {
+            onColorChange?.(pendingColorsRef.current);
+            pendingColorsRef.current = null;
+          }
+        }, 100);
+      },
+      [onColorChange],
+    );
+
+    // Debounced typography change to parent
+    const debouncedTypographyChange = useCallback(
+      (typo: TypographySettings) => {
+        pendingTypographyRef.current = typo;
+        if (typographyDebounceRef.current) {
+          clearTimeout(typographyDebounceRef.current);
+        }
+        typographyDebounceRef.current = setTimeout(() => {
+          if (pendingTypographyRef.current) {
+            onTypographyChange?.(pendingTypographyRef.current);
+            pendingTypographyRef.current = null;
+          }
+        }, 100);
+      },
+      [onTypographyChange],
+    );
 
     // Calculate palette menu position
     const updatePalettePosition = useCallback(() => {
@@ -484,34 +556,39 @@ export const ChartActions = memo(
         setSelectedPalette(paletteKey);
         const newColors = COLOR_PALETTES[paletteKey].slice(0, colorCount);
         setCustomColors(newColors);
-        onColorChange?.(newColors);
+        // Use debounced callback to avoid render issues
+        debouncedColorChange(newColors);
       },
-      [colorCount, onColorChange],
+      [colorCount, debouncedColorChange],
     );
 
     // Handle individual color change
     const handleColorChange = useCallback(
       (index: number, color: string) => {
+        // Update local state immediately for smooth UI
         setCustomColors((prev) => {
           const newColors = [...prev];
           newColors[index] = color;
-          onColorChange?.(newColors);
+          // Schedule debounced parent update (outside setState to avoid render issues)
+          setTimeout(() => debouncedColorChange(newColors), 0);
           return newColors;
         });
       },
-      [onColorChange],
+      [debouncedColorChange],
     );
 
     // Handle typography changes
     const handleTypographyUpdate = useCallback(
       (key: keyof TypographySettings, value: number | string | boolean) => {
+        // Update local state immediately
         setTypography((prev) => {
           const newTypography = { ...prev, [key]: value };
-          onTypographyChange?.(newTypography);
+          // Schedule debounced parent update (outside setState to avoid render issues)
+          setTimeout(() => debouncedTypographyChange(newTypography), 0);
           return newTypography;
         });
       },
-      [onTypographyChange],
+      [debouncedTypographyChange],
     );
 
     // Toggle menus

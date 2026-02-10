@@ -14,6 +14,7 @@ import type {
   ChartStyling,
 } from "@/types/chat";
 import type { ChartRenderData } from "@/types/chart";
+import { generateChatId } from "@/lib/generateId";
 
 // ===== STATE TYPES =====
 
@@ -22,6 +23,7 @@ interface ChatState {
   chats: Chat[];
   activeChatId: string | null;
   messages: Message[];
+  messagesCache: Record<string, Message[]>; // Chat ID -> Messages cache
 
   // Loading states
   isLoadingChats: boolean;
@@ -36,23 +38,33 @@ interface ChatState {
 interface ChatActions {
   // Chat operations
   fetchChats: () => Promise<void>;
-  createChat: (title?: string) => Promise<Chat | null>;
+  createLocalChat: (title?: string) => string; // Creates chat with real ID (c-xxx), returns chatId
+  saveChatToDB: (chatId: string) => Promise<void>; // Fire-and-forget: save chat to DB (returns Promise for chaining)
   setActiveChat: (chatId: string | null) => void;
   deleteChat: (chatId: string) => Promise<boolean>;
   updateChatTitle: (chatId: string, title: string) => Promise<boolean>;
 
   // Message operations
   fetchMessages: (chatId: string) => Promise<void>;
-  addUserMessage: (content: string) => Promise<Message | null>;
-  addAssistantMessage: (
+  addLocalUserMessage: (content: string, chatId?: string) => Message | null; // Client-only
+  addLocalLoadingMessage: (chatId?: string) => string;
+  addLocalAssistantMessage: (
     content: string,
     chartData?: StoredChartData,
-    replaceLoadingId?: string
-  ) => Promise<Message | null>;
-  addLocalLoadingMessage: () => string;
+    replaceLoadingId?: string,
+    targetChatId?: string
+  ) => Message | null;
   updateLocalMessage: (
     tempId: string,
-    updates: Partial<Message> & { chartData?: StoredChartData }
+    updates: Partial<Message> & { chartData?: StoredChartData },
+    targetChatId?: string
+  ) => void;
+  // Fire-and-forget DB saves (no state update on return)
+  saveUserMessageToDB: (chatId: string, content: string) => void;
+  saveAssistantMessageToDB: (
+    chatId: string,
+    content: string,
+    chartData?: StoredChartData
   ) => void;
   updateMessageStyling: (
     messageId: string,
@@ -63,6 +75,7 @@ interface ChatActions {
   // Utility
   clearError: () => void;
   clearMessages: () => void;
+  isUnsavedChat: (chatId: string | null) => boolean; // Check if chat exists in local state but not necessarily in DB
 
   // Helpers for chart data conversion
   convertToStoredChartData: (renderData: ChartRenderData) => StoredChartData;
@@ -102,6 +115,7 @@ export const useChatStore = create<ChatStore>()(
       chats: [],
       activeChatId: null,
       messages: [],
+      messagesCache: {},
       isLoadingChats: false,
       isLoadingMessages: false,
       isSendingMessage: false,
@@ -129,49 +143,131 @@ export const useChatStore = create<ChatStore>()(
         }
       },
 
-      createChat: async (title?: string) => {
-        set({ error: null });
+      // ===== CHAT CREATION =====
+      
+      // Check if chat is unsaved (exists locally but may not be in DB yet)
+      isUnsavedChat: (chatId: string | null) => {
+        if (!chatId) return false;
+        // A chat is "unsaved" if it's in local state but was just created
+        // We track this by checking if it's a newly created chat without messages in DB
+        const chat = get().chats.find(c => c.id === chatId);
+        return chat !== undefined;
+      },
 
-        try {
-          const response = await fetch("/api/chats", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title }),
-          });
+      // Create chat with REAL ID (c-xxx format) - no temp IDs
+      createLocalChat: (title?: string): string => {
+        const chatId = generateChatId(); // Generates c-{timestamp}{random}
+        const newChat: Chat = {
+          id: chatId,
+          title: title || "New Chat",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to create chat");
-          }
-
-          const newChat = data.chat as Chat;
-
-          // Add to chats list
+        // Mevcut mesajları cache'e kaydet
+        const { activeChatId: currentChatId, messages: currentMessages } = get();
+        if (currentChatId && currentMessages.length > 0) {
           set((state) => ({
-            chats: [newChat, ...state.chats],
-            activeChatId: newChat.id,
-            messages: [],
+            messagesCache: {
+              ...state.messagesCache,
+              [currentChatId]: currentMessages,
+            },
           }));
-
-          return newChat;
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Failed to create chat";
-          set({ error: message });
-          return null;
         }
+
+        // Chat'i listeye ekle, aktif yap, boş mesajlarla başlat
+        set((state) => ({
+          chats: [newChat, ...state.chats],
+          activeChatId: chatId,
+          messages: [],
+          messagesCache: {
+            ...state.messagesCache,
+            [chatId]: [],
+          },
+          error: null,
+        }));
+
+        return chatId;
+      },
+
+      // Fire-and-forget: Save chat to DB (returns Promise for chaining, but no state update)
+      saveChatToDB: (chatId: string) => {
+        const chat = get().chats.find(c => c.id === chatId);
+        if (!chat) {
+          console.error("saveChatToDB: Chat not found", chatId);
+          return Promise.resolve();
+        }
+
+        // Return the promise for chaining, but caller doesn't need to await
+        return fetch("/api/chats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: chatId, // Send the client-generated ID
+            title: chat.title,
+          }),
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              const data = await response.json();
+              console.error("Failed to save chat:", data.error);
+            }
+            // Success - don't update state, client already has the chat
+          })
+          .catch((error) => {
+            console.error("Failed to save chat:", error);
+          });
       },
 
       setActiveChat: (chatId: string | null) => {
-        set({ activeChatId: chatId, messages: [] });
-
-        if (chatId) {
-          get().fetchMessages(chatId);
+        const { messagesCache, activeChatId: currentChatId, messages: currentMessages } = get();
+        
+        // Mevcut chat'in mesajlarını cache'e kaydet (geri döndüğünde kullanılacak)
+        if (currentChatId && currentMessages.length > 0) {
+          set((state) => ({
+            messagesCache: {
+              ...state.messagesCache,
+              [currentChatId]: currentMessages,
+            },
+          }));
+        }
+        
+        // Önce cache kontrol et
+        if (chatId && messagesCache[chatId]) {
+          // Cache'de var - hemen göster, DB'ye gitme
+          set({ 
+            activeChatId: chatId, 
+            messages: messagesCache[chatId],
+            isLoadingMessages: false 
+          });
+        } else {
+          // Cache'de yok - loading state ile başlat (flash önleme)
+          set({ activeChatId: chatId, messages: [], isLoadingMessages: !!chatId });
+          if (chatId) {
+            get().fetchMessages(chatId);
+          }
         }
       },
 
       deleteChat: async (chatId: string) => {
+        // Optimistic update - önce client'ta sil
+        const previousChats = get().chats;
+        const previousActiveChatId = get().activeChatId;
+        const previousMessages = get().messages;
+        const previousCache = get().messagesCache;
+
+        set((state) => {
+          // Cache'den de sil
+          const { [chatId]: _, ...restCache } = state.messagesCache;
+          return {
+            chats: state.chats.filter((c) => c.id !== chatId),
+            activeChatId:
+              state.activeChatId === chatId ? null : state.activeChatId,
+            messages: state.activeChatId === chatId ? [] : state.messages,
+            messagesCache: restCache,
+          };
+        });
+
         try {
           const response = await fetch(`/api/chats/${chatId}`, {
             method: "DELETE",
@@ -182,15 +278,15 @@ export const useChatStore = create<ChatStore>()(
             throw new Error(data.error || "Failed to delete chat");
           }
 
-          set((state) => ({
-            chats: state.chats.filter((c) => c.id !== chatId),
-            activeChatId:
-              state.activeChatId === chatId ? null : state.activeChatId,
-            messages: state.activeChatId === chatId ? [] : state.messages,
-          }));
-
           return true;
         } catch (error) {
+          // Hata olursa geri al
+          set({
+            chats: previousChats,
+            activeChatId: previousActiveChatId,
+            messages: previousMessages,
+            messagesCache: previousCache,
+          });
           const message =
             error instanceof Error ? error.message : "Failed to delete chat";
           set({ error: message });
@@ -199,6 +295,14 @@ export const useChatStore = create<ChatStore>()(
       },
 
       updateChatTitle: async (chatId: string, title: string) => {
+        // Optimistic update - önce client'ta güncelle
+        const previousChats = get().chats;
+        set((state) => ({
+          chats: state.chats.map((c) =>
+            c.id === chatId ? { ...c, title } : c
+          ),
+        }));
+
         try {
           const response = await fetch(`/api/chats/${chatId}`, {
             method: "PATCH",
@@ -211,14 +315,10 @@ export const useChatStore = create<ChatStore>()(
             throw new Error(data.error || "Failed to update chat title");
           }
 
-          set((state) => ({
-            chats: state.chats.map((c) =>
-              c.id === chatId ? { ...c, title } : c
-            ),
-          }));
-
           return true;
         } catch (error) {
+          // Hata olursa geri al
+          set({ chats: previousChats });
           const message =
             error instanceof Error ? error.message : "Failed to update chat";
           set({ error: message });
@@ -239,10 +339,24 @@ export const useChatStore = create<ChatStore>()(
             throw new Error(data.error || "Failed to fetch messages");
           }
 
-          set({
-            messages: data.chat.messages || [],
-            isLoadingMessages: false,
-          });
+          const fetchedMessages = data.chat.messages || [];
+
+          // Sadece hala aynı chat aktifse güncelle (race condition önleme)
+          const { activeChatId } = get();
+          if (activeChatId === chatId) {
+            set({
+              messages: fetchedMessages,
+              isLoadingMessages: false,
+            });
+          }
+
+          // Her durumda cache'e yaz
+          set((state) => ({
+            messagesCache: {
+              ...state.messagesCache,
+              [chatId]: fetchedMessages,
+            },
+          }));
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Failed to fetch messages";
@@ -250,153 +364,215 @@ export const useChatStore = create<ChatStore>()(
         }
       },
 
-      addUserMessage: async (content: string) => {
-        const { activeChatId } = get();
+      // Add user message locally only (for lazy chat creation)
+      addLocalUserMessage: (content: string, targetChatId?: string): Message | null => {
+        const chatId = targetChatId || get().activeChatId;
 
-        if (!activeChatId) {
+        if (!chatId) {
           set({ error: "No active chat" });
           return null;
         }
 
-        set({ isSendingMessage: true, error: null });
+        const tempId = `temp-user-${Date.now()}`;
+        const tempMessage: Message = {
+          id: tempId,
+          chatId: chatId,
+          role: "user",
+          content,
+          createdAt: new Date(),
+        };
 
-        try {
-          const response = await fetch(`/api/chats/${activeChatId}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              role: "user",
-              content,
-            }),
-          });
+        set((state) => ({
+          messages: [...state.messages, tempMessage],
+          messagesCache: {
+            ...state.messagesCache,
+            [chatId]: [...(state.messagesCache[chatId] || []), tempMessage],
+          },
+          error: null,
+        }));
 
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to add message");
-          }
-
-          const newMessage = data.message as Message;
-
-          set((state) => ({
-            messages: [...state.messages, newMessage],
-            isSendingMessage: false,
-          }));
-
-          // Update chat title if it changed
-          if (data.chatTitle) {
-            set((state) => ({
-              chats: state.chats.map((c) =>
-                c.id === activeChatId ? { ...c, title: data.chatTitle } : c
-              ),
-            }));
-          }
-
-          return newMessage;
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Failed to add message";
-          set({ error: message, isSendingMessage: false });
-          return null;
-        }
+        return tempMessage;
       },
 
-      addLocalLoadingMessage: () => {
+      addLocalLoadingMessage: (chatId?: string) => {
         const tempId = `temp-loading-${Date.now()}`;
-        const { activeChatId } = get();
+        const targetChatId = chatId || get().activeChatId;
 
-        if (!activeChatId) return tempId;
+        if (!targetChatId) return tempId;
 
         const loadingMessage: Message = {
           id: tempId,
-          chatId: activeChatId,
+          chatId: targetChatId,
           role: "assistant",
           content: "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
-        set((state) => ({
-          messages: [...state.messages, loadingMessage],
-        }));
+        set((state) => {
+          const updatedMessages = [...state.messages, loadingMessage];
+          return {
+            messages: updatedMessages,
+            messagesCache: {
+              ...state.messagesCache,
+              [targetChatId]: updatedMessages,
+            },
+          };
+        });
 
         return tempId;
       },
 
-      updateLocalMessage: (tempId: string, updates: Partial<Message> & { chartData?: StoredChartData }) => {
-        set((state) => ({
-          messages: state.messages.map((msg) =>
+      updateLocalMessage: (tempId: string, updates: Partial<Message> & { chartData?: StoredChartData }, targetChatId?: string) => {
+        const chatId = targetChatId || get().activeChatId;
+        set((state) => {
+          const updatedMessages = state.messages.map((msg) =>
             msg.id === tempId ? { ...msg, ...updates } : msg
-          ),
-        }));
+          );
+          // Also update cache
+          if (chatId) {
+            return {
+              messages: updatedMessages,
+              messagesCache: {
+                ...state.messagesCache,
+                [chatId]: updatedMessages,
+              },
+            };
+          }
+          return { messages: updatedMessages };
+        });
       },
 
-      addAssistantMessage: async (
+      // ===== NEW OPTIMIZED FUNCTIONS =====
+
+      // Add assistant message locally (instant, no DB)
+      addLocalAssistantMessage: (
         content: string,
         chartData?: StoredChartData,
-        replaceLoadingId?: string // Optional: replace loading message instead of adding new
-      ) => {
-        const { activeChatId } = get();
+        replaceLoadingId?: string,
+        targetChatId?: string // Optional: use this instead of activeChatId
+      ): Message | null => {
+        const chatId = targetChatId || get().activeChatId;
 
-        if (!activeChatId) {
+        if (!chatId) {
           set({ error: "No active chat" });
           return null;
         }
 
-        set({ isSendingMessage: true, error: null });
+        // Always generate new ID (don't keep loading ID)
+        const newMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          chatId: chatId,
+          role: "assistant",
+          content,
+          chartData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-        try {
-          const response = await fetch(`/api/chats/${activeChatId}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              role: "assistant",
-              content,
-              chartData,
-            }),
-          });
+        set((state) => {
+          let updatedMessages: Message[];
 
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to add message");
-          }
-
-          const newMessage = data.message as Message;
-
-          // If replaceLoadingId provided, replace that message; otherwise add new
           if (replaceLoadingId) {
-            set((state) => ({
-              messages: state.messages.map((msg) =>
-                msg.id === replaceLoadingId ? newMessage : msg
-              ),
-              isSendingMessage: false,
-            }));
+            // Replace loading message
+            updatedMessages = state.messages.map((msg) =>
+              msg.id === replaceLoadingId ? newMessage : msg
+            );
           } else {
-            set((state) => ({
-              messages: [...state.messages, newMessage],
-              isSendingMessage: false,
-            }));
+            // Add new message
+            updatedMessages = [...state.messages, newMessage];
           }
 
-          return newMessage;
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Failed to add message";
-          set({ error: message, isSendingMessage: false });
-          return null;
-        }
+          return {
+            messages: updatedMessages,
+            messagesCache: {
+              ...state.messagesCache,
+              [chatId]: updatedMessages,
+            },
+          };
+        });
+
+        return newMessage;
+      },
+
+      // Fire-and-forget: Save user message to DB (no state update on return)
+      saveUserMessageToDB: (chatId: string, content: string) => {
+        // Don't await - fire and forget
+        fetch(`/api/chats/${chatId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "user", content }),
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              const data = await response.json();
+              console.error("Failed to save user message:", data.error);
+            }
+            // Success - don't update state, client already has the message
+          })
+          .catch((error) => {
+            console.error("Failed to save user message:", error);
+          });
+      },
+
+      // Fire-and-forget: Save assistant message to DB (no state update on return)
+      saveAssistantMessageToDB: (
+        chatId: string,
+        content: string,
+        chartData?: StoredChartData
+      ) => {
+        // Don't await - fire and forget
+        fetch(`/api/chats/${chatId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "assistant", content, chartData }),
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              const data = await response.json();
+              console.error("Failed to save assistant message:", data.error);
+            }
+            // Success - don't update state, client already has the message
+          })
+          .catch((error) => {
+            console.error("Failed to save assistant message:", error);
+          });
       },
 
       updateMessageStyling: async (
         messageId: string,
         styling: Partial<ChartStyling>
       ) => {
-        const { activeChatId, messages } = get();
+        const { activeChatId } = get();
 
         if (!activeChatId) return false;
 
-        set({ isSavingChart: true });
+        // Helper: Mesajları styling ile güncelle
+        const updateMessages = (msgs: Message[]) =>
+          msgs.map((msg) =>
+            msg.id === messageId && msg.role === "assistant" && msg.chartData
+              ? {
+                  ...msg,
+                  chartData: {
+                    ...msg.chartData,
+                    styling: { ...msg.chartData.styling, ...styling },
+                  },
+                }
+              : msg
+          );
+
+        // Optimistic update - messages VE cache'i aynı anda güncelle
+        set((state) => {
+          const updatedMessages = updateMessages(state.messages);
+          return {
+            messages: updatedMessages,
+            messagesCache: {
+              ...state.messagesCache,
+              [activeChatId]: updatedMessages,
+            },
+            isSavingChart: true,
+          };
+        });
 
         try {
           const response = await fetch(
@@ -415,21 +591,8 @@ export const useChatStore = create<ChatStore>()(
             throw new Error(data.error || "Failed to update styling");
           }
 
-          // Update local state
-          set({
-            messages: messages.map((msg) =>
-              msg.id === messageId && msg.role === "assistant" && msg.chartData
-                ? {
-                    ...msg,
-                    chartData: {
-                      ...msg.chartData,
-                      styling: { ...msg.chartData.styling, ...styling },
-                    },
-                  }
-                : msg
-            ),
-            isSavingChart: false,
-          });
+          // DB'ye kaydedildi - ChartRenderer sync yapmadığı için race condition yok
+          set({ isSavingChart: false });
 
           return true;
         } catch (error) {

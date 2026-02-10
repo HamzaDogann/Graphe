@@ -51,8 +51,12 @@ export function isValidCanvasId(id: string): boolean {
 
 /**
  * Validates if a string is a valid chat ID
+ * Accepts permanent IDs (c-xxx) and "new" for new chat route
  */
 export function isValidChatId(id: string): boolean {
+  // Special case for new chat route
+  if (id === "new") return true;
+  
   // Pattern: c-{base36_timestamp}{8_random_chars}
   const pattern = /^c-[a-z0-9]{8,}$/;
   return pattern.test(id);
