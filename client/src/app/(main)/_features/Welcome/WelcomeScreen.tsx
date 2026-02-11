@@ -10,8 +10,8 @@ import { ProcessingLoader } from "@/app/_components";
 import styles from "./WelcomeScreen.module.scss";
 
 export default function WelcomeScreen() {
-  const parseFile = useDatasetStore((state) => state.parseFile);
-  const { user } = useUserStore();
+  const { parseFile, error: datasetError } = useDatasetStore();
+  const { user, isLoadingUser } = useUserStore();
   const router = useRouter();
 
   const [showIntro, setShowIntro] = useState(true);
@@ -19,13 +19,17 @@ export default function WelcomeScreen() {
   const [introVisible, setIntroVisible] = useState(false);
   const [revealedStep, setRevealedStep] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Kullanıcı adı yoksa varsayılan olarak "User" veya boş string
   const username = user?.name?.split(" ")[0] || "User";
 
+  // Wait for user data to load before starting the animation
   useEffect(() => {
+    if (isLoadingUser) return; // Don't start until user is loaded
+
     const mountId = window.setTimeout(() => setIntroVisible(true), 50);
 
     const leaveTimer = setTimeout(() => {
@@ -40,7 +44,7 @@ export default function WelcomeScreen() {
       clearTimeout(mountId);
       clearTimeout(leaveTimer);
     };
-  }, []);
+  }, [isLoadingUser]);
 
   useEffect(() => {
     if (showIntro) return;
@@ -66,6 +70,8 @@ export default function WelcomeScreen() {
   }, [showIntro]);
 
   const handleUploadClick = () => {
+    if (isUploading) return;
+    setUploadError(null);
     fileInputRef.current?.click();
   };
 
@@ -73,14 +79,38 @@ export default function WelcomeScreen() {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
+    if (!file || isUploading) {
+      return;
+    }
 
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
       // Parse the file and store data before navigation
       await parseFile(file);
 
+      // Check if parsing was successful (no error in store)
+      const currentError = useDatasetStore.getState().error;
+      if (currentError) {
+        setUploadError(currentError);
+        setIsUploading(false);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+
       // Navigate to new chat page - chat will be created on first message (lazy creation)
       router.push("/dashboard/chats/new");
+    } catch {
+      setUploadError("Failed to process file. Please try again.");
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -91,6 +121,11 @@ export default function WelcomeScreen() {
         <ProcessingLoader text="Processing data..." size="medium" />
       </div>
     );
+  }
+
+  // Wait for user data to load before showing content
+  if (isLoadingUser) {
+    return <div className={styles.welcomeRoot} />;
   }
 
   return (
@@ -210,9 +245,13 @@ export default function WelcomeScreen() {
                 loading="lazy"
               />
             </div>
-            <div className={styles.uploadDisclaimer}>
-              Your data remains secure and private.
-            </div>
+            {uploadError ? (
+              <div className={styles.uploadError}>{uploadError}</div>
+            ) : (
+              <div className={styles.uploadDisclaimer}>
+                Your data remains secure and private.
+              </div>
+            )}
           </div>
         </div>
       )}

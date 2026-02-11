@@ -108,7 +108,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             collapsed={false}
           >
             {isLoadingChats ? (
-              <div className={styles.loadingChats}>Loading...</div>
+              <div className={styles.skeletonContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className={styles.skeletonItem} />
+                ))}
+              </div>
             ) : chatListItems.length > 0 ? (
               <SidebarChatList chats={chatListItems} collapsed={false} />
             ) : (

@@ -16,7 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={productSans.variable}>
+    <html
+      lang="en"
+      className={productSans.variable}
+      suppressHydrationWarning={true}
+    >
       <body suppressHydrationWarning={true}>
         <AuthProvider>
           <GlobalLoader />

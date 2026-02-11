@@ -351,6 +351,170 @@
     }
 }
 
+/* Chart Info Tooltip */
+.chartInfoTooltip {
+    position: fixed;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16), 0 6px 16px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    z-index: 100000;
+    animation: infoSlideIn 0.25s ease;
+    min-width: 300px;
+    max-width: 360px;
+    overflow: hidden;
+}
+
+@keyframes infoSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header with dataset info */
+.infoHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.infoHeaderTitle {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.datasetBadge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.datasetIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+
+    svg {
+        color: white;
+    }
+}
+
+
+.datasetName {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.infoCloseBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.8);
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+
+    &:hover {
+        background: white;
+        color: #334155;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active {
+        transform: scale(0.92);
+    }
+}
+
+/* Divider */
+.infoDivider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+/* Content area */
+.infoContent {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+}
+
+.infoRow {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.infoIconLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg {
+        color: #5c85ff;
+        flex-shrink: 0;
+    }
+}
+
+.infoLabel {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+}
+
+.infoValue {
+    font-size: 14px;
+    color: #1e293b;
+    line-height: 1.5;
+    word-break: break-word;
+    padding-left: 26px;
+
+    /* When inside infoValueWithIcon, remove padding */
+    .infoValueWithIcon & {
+        padding-left: 0;
+    }
+}
+
+.infoValueWithIcon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #1e293b;
+    padding-left: 26px;
+
+    svg {
+        flex-shrink: 0;
+        color: #5c85ff;
+    }
+}
+
 /* Typography Menu Specific Styles */
 .settingRow {
     display: flex;

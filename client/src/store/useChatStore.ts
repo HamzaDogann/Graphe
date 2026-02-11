@@ -12,6 +12,7 @@ import type {
   Message,
   StoredChartData,
   ChartStyling,
+  ChartDatasetInfo,
 } from "@/types/chat";
 import type { ChartRenderData } from "@/types/chart";
 import { generateChatId } from "@/lib/generateId";
@@ -24,6 +25,7 @@ interface ChatState {
   activeChatId: string | null;
   messages: Message[];
   messagesCache: Record<string, Message[]>; // Chat ID -> Messages cache
+  failedChatIds: Set<string>; // Track chats that failed to load (permission denied, not found, etc.)
 
   // Loading states
   isLoadingChats: boolean;
@@ -33,6 +35,7 @@ interface ChatState {
 
   // Error states
   error: string | null;
+  accessDenied: boolean; // True if current chat access was denied (403)
 }
 
 interface ChatActions {
@@ -78,7 +81,10 @@ interface ChatActions {
   isUnsavedChat: (chatId: string | null) => boolean; // Check if chat exists in local state but not necessarily in DB
 
   // Helpers for chart data conversion
-  convertToStoredChartData: (renderData: ChartRenderData) => StoredChartData;
+  convertToStoredChartData: (
+    renderData: ChartRenderData,
+    datasetInfo?: ChartDatasetInfo
+  ) => StoredChartData;
 }
 
 type ChatStore = ChatState & ChatActions;
@@ -116,11 +122,13 @@ export const useChatStore = create<ChatStore>()(
       activeChatId: null,
       messages: [],
       messagesCache: {},
+      failedChatIds: new Set<string>(),
       isLoadingChats: false,
       isLoadingMessages: false,
       isSendingMessage: false,
       isSavingChart: false,
       error: null,
+      accessDenied: false,
 
       // ===== CHAT OPERATIONS =====
 
@@ -220,7 +228,21 @@ export const useChatStore = create<ChatStore>()(
       },
 
       setActiveChat: (chatId: string | null) => {
-        const { messagesCache, activeChatId: currentChatId, messages: currentMessages } = get();
+        const { messagesCache, activeChatId: currentChatId, messages: currentMessages, failedChatIds } = get();
+        
+        // Daha önce başarısız olan chat'e tekrar istek atma
+        if (chatId && failedChatIds.has(chatId)) {
+          set({ 
+            activeChatId: chatId, 
+            messages: [], 
+            isLoadingMessages: false,
+            accessDenied: true 
+          });
+          return;
+        }
+        
+        // Reset accessDenied when switching chats
+        set({ accessDenied: false });
         
         // Mevcut chat'in mesajlarını cache'e kaydet (geri döndüğünde kullanılacak)
         if (currentChatId && currentMessages.length > 0) {
@@ -329,13 +351,38 @@ export const useChatStore = create<ChatStore>()(
       // ===== MESSAGE OPERATIONS =====
 
       fetchMessages: async (chatId: string) => {
-        set({ isLoadingMessages: true, error: null });
+        // Skip if already failed
+        if (get().failedChatIds.has(chatId)) {
+          set({ accessDenied: true, isLoadingMessages: false });
+          return;
+        }
+        
+        set({ isLoadingMessages: true, error: null, accessDenied: false });
 
         try {
           const response = await fetch(`/api/chats/${chatId}`);
           const data = await response.json();
 
           if (!response.ok) {
+            // Check for permission denied (403 Forbidden)
+            if (response.status === 403) {
+              set((state) => ({
+                failedChatIds: new Set([...state.failedChatIds, chatId]),
+                accessDenied: true,
+                isLoadingMessages: false,
+                error: "You don't have permission to view this chat",
+              }));
+              return;
+            }
+            // Chat not found (404)
+            if (response.status === 404) {
+              set((state) => ({
+                failedChatIds: new Set([...state.failedChatIds, chatId]),
+                isLoadingMessages: false,
+                error: data.error || "Chat not found",
+              }));
+              return;
+            }
             throw new Error(data.error || "Failed to fetch messages");
           }
 
@@ -645,11 +692,15 @@ export const useChatStore = create<ChatStore>()(
        * This strips unnecessary originalData and keeps only aggregated values
        */
       convertToStoredChartData: (
-        renderData: ChartRenderData
+        renderData: ChartRenderData,
+        datasetInfo?: ChartDatasetInfo
       ): StoredChartData => {
         return {
           type: renderData.type,
           title: renderData.config.title,
+          description: renderData.config.description,
+          createdAt: new Date().toISOString(),
+          datasetInfo,
           data: renderData.processedData.map((point) => ({
             label: point.label,
             value: point.value,

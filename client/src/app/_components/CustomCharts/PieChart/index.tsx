@@ -38,6 +38,7 @@ export const PieChart = ({
   onDataPointClick,
   onStylingChange,
   initialTypography,
+  chartInfo,
 }: PieChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() =>
@@ -322,6 +323,8 @@ export const PieChart = ({
         colorCount={Math.min(data.length, 8)}
         currentTypography={typography}
         orientation="vertical"
+        showInfo={!!chartInfo}
+        chartInfo={chartInfo}
       />
     </div>
   );

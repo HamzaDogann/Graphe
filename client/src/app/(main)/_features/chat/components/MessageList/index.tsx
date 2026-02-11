@@ -116,14 +116,14 @@ export const MessageList = ({ messages }: MessageListProps) => {
 
         // 3. Sistem Yanıtı (Chart veya Error)
         if (message.type === "system" && !message.isLoading) {
+          const chartData = message.chartData as StoredChartData | undefined;
           return (
             <SystemResponse
               key={message.id}
-              title={message.chartData?.config?.title || "Response"}
-              description={
-                message.chartData?.config?.description || message.content
-              }
+              title={chartData?.config?.title || "Response"}
+              description={chartData?.config?.description || message.content}
               chartData={message.chartData}
+              storedChartData={chartData}
               error={message.error}
             />
           );

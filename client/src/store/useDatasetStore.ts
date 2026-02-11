@@ -31,7 +31,7 @@ const DEFAULT_PARSED_DATA: ParsedData = {
   columnCount: 3,
   fileName: "sample_data.csv",
   fileSize: "1 KB",
-  parsedAt: new Date().toISOString(),
+  parsedAt: "2026-01-01T00:00:00.000Z", // Static date to avoid hydration mismatch
   columns: [
     { name: "City", type: "string", uniqueValues: 4 },
     { name: "Sales", type: "number", uniqueValues: 10 },
@@ -150,22 +150,86 @@ export const useDatasetStore = create<DatasetState>()(
         
         // Parse file and store data
         parseFile: async (file: File) => {
+          // Prevent multiple simultaneous parsing
+          if (get().isLoading) {
+            return;
+          }
+          
           set({ isLoading: true, error: null, currentFile: file });
           
           const fileType = file.name.split(".").pop()?.toLowerCase();
           const fileSize = formatFileSize(file.size);
           
           try {
+            // Early check for empty file
+            if (file.size === 0) {
+              set({
+                error: "The dataset is empty. Please upload a file with data.",
+                isLoading: false,
+                parsedData: null,
+              });
+              return;
+            }
+            
             let parsedData: ParsedData | null = null;
             
             // JSON Parsing
             if (fileType === "json") {
               const text = await file.text();
-              const json = JSON.parse(text);
+              
+              // Check if file is empty
+              if (!text || text.trim().length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              let json;
+              try {
+                json = JSON.parse(text);
+              } catch {
+                set({
+                  error: "Invalid JSON format. Please upload a valid JSON file.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              // Check if JSON is empty array
+              if (Array.isArray(json) && json.length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              // Check if JSON is empty object
+              if (!Array.isArray(json) && typeof json === "object" && json !== null && Object.keys(json).length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
               
               // Check if JSON is an array of objects (table-like)
-              if (Array.isArray(json) && json.length > 0 && typeof json[0] === "object") {
+              if (Array.isArray(json) && json.length > 0 && typeof json[0] === "object" && json[0] !== null) {
                 const headers = Object.keys(json[0]);
+                if (headers.length === 0) {
+                  set({
+                    error: "The dataset has no columns. Please upload a file with valid data.",
+                    isLoading: false,
+                    parsedData: null,
+                  });
+                  return;
+                }
                 const columns = extractColumnMetadata(headers, json);
                 parsedData = {
                   type: "table",
@@ -179,6 +243,7 @@ export const useDatasetStore = create<DatasetState>()(
                   parsedAt: new Date().toISOString(),
                 };
               } else {
+                // Non-array JSON content
                 parsedData = {
                   type: "json",
                   content: json,
@@ -192,69 +257,190 @@ export const useDatasetStore = create<DatasetState>()(
             // CSV Parsing
             else if (fileType === "csv") {
               const text = await file.text();
+              
+              // Check if file is empty
+              if (!text || text.trim().length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
               const result = Papa.parse(text, {
                 header: true,
                 skipEmptyLines: true,
                 dynamicTyping: true, // Auto-detect numbers
               });
               
-              if (result.data && result.data.length > 0) {
-                const headers = Object.keys(result.data[0] as object);
-                const rows = result.data as Record<string, any>[];
-                const columns = extractColumnMetadata(headers, rows);
-                
-                parsedData = {
-                  type: "table",
-                  headers,
-                  rows,
-                  rowCount: rows.length,
-                  columnCount: headers.length,
-                  columns,
-                  fileName: file.name,
-                  fileSize,
-                  parsedAt: new Date().toISOString(),
-                };
-              } else {
-                throw new Error("Empty CSV file");
+              if (!result.data || result.data.length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
               }
+              
+              const firstRow = result.data[0];
+              if (!firstRow || typeof firstRow !== "object") {
+                set({
+                  error: "Invalid CSV format. Please upload a valid CSV file.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              const headers = Object.keys(firstRow as object);
+              const rows = result.data as Record<string, any>[];
+              
+              // Check if there's actual data (not just headers)
+              if (headers.length === 0 || rows.length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              const columns = extractColumnMetadata(headers, rows);
+              
+              parsedData = {
+                type: "table",
+                headers,
+                rows,
+                rowCount: rows.length,
+                columnCount: headers.length,
+                columns,
+                fileName: file.name,
+                fileSize,
+                parsedAt: new Date().toISOString(),
+              };
             }
             
             // Excel Parsing
             else if (fileType === "xls" || fileType === "xlsx") {
-              const buffer = await file.arrayBuffer();
-              const workbook = XLSX.read(buffer, { type: "array" });
+              let buffer;
+              try {
+                buffer = await file.arrayBuffer();
+              } catch {
+                set({
+                  error: "Failed to read Excel file. Please try again.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              let workbook;
+              try {
+                workbook = XLSX.read(buffer, { type: "array" });
+              } catch {
+                set({
+                  error: "Invalid Excel format. Please upload a valid Excel file.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                set({
+                  error: "The Excel file has no sheets. Please upload a valid file.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
               const sheetName = workbook.SheetNames[0];
               const sheet = workbook.Sheets[sheetName];
               const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
               
-              if (jsonData && jsonData.length > 0) {
-                const headers = jsonData[0] as string[];
-                const rows = jsonData.slice(1).map((row: any[]) => {
-                  const rowData: Record<string, any> = {};
-                  headers.forEach((header, index) => {
-                    rowData[header] = row[index];
-                  });
-                  return rowData;
+              // Check if file is empty or has no data rows (only header or less)
+              if (!jsonData || jsonData.length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
                 });
-                
-                const columns = extractColumnMetadata(headers, rows);
-                
-                parsedData = {
-                  type: "table",
-                  headers,
-                  rows,
-                  rowCount: rows.length,
-                  columnCount: headers.length,
-                  columns,
-                  fileName: file.name,
-                  fileSize,
-                  parsedAt: new Date().toISOString(),
-                };
-              } else {
-                throw new Error("Empty Excel file");
+                return;
               }
+              
+              if (jsonData.length < 2) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              const headers = jsonData[0] as string[];
+              if (!headers || headers.length === 0) {
+                set({
+                  error: "The dataset has no columns. Please upload a file with valid data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              const rows = jsonData.slice(1).map((row: any[]) => {
+                const rowData: Record<string, any> = {};
+                headers.forEach((header, index) => {
+                  rowData[header] = row[index];
+                });
+                return rowData;
+              });
+              
+              // Filter out completely empty rows
+              const nonEmptyRows = rows.filter(row => 
+                Object.values(row).some(val => val != null && val !== "")
+              );
+              
+              if (nonEmptyRows.length === 0) {
+                set({
+                  error: "The dataset is empty. Please upload a file with data.",
+                  isLoading: false,
+                  parsedData: null,
+                });
+                return;
+              }
+              
+              const columns = extractColumnMetadata(headers, nonEmptyRows);
+              
+              parsedData = {
+                type: "table",
+                headers,
+                rows: nonEmptyRows,
+                rowCount: nonEmptyRows.length,
+                columnCount: headers.length,
+                columns,
+                fileName: file.name,
+                fileSize,
+                parsedAt: new Date().toISOString(),
+              };
             } else {
-              throw new Error("Unsupported file format");
+              set({
+                error: "Unsupported file format. Please upload CSV, Excel, or JSON files.",
+                isLoading: false,
+                parsedData: null,
+              });
+              return;
+            }
+            
+            // Ensure parsedData was set
+            if (!parsedData) {
+              set({
+                error: "Failed to parse file. Please try a different file.",
+                isLoading: false,
+                parsedData: null,
+              });
+              return;
             }
             
             // Check cache size and decide to cache or not
@@ -270,7 +456,9 @@ export const useDatasetStore = create<DatasetState>()(
             });
             
           } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to parse file";
+            // Catch any unexpected errors
+            console.error("Error parsing file:", err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to parse file. Please try again.";
             set({
               error: errorMessage,
               isLoading: false,

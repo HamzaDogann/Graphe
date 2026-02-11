@@ -1,13 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import {
-  FileSpreadsheet,
-  FileJson,
-  RefreshCw,
-  Trash2,
-  Plus, // Yeni ikon eklendi
-} from "lucide-react";
+import { useRef, useEffect } from "react";
+import Image from "next/image";
+import { RefreshCw, Trash2, Plus, Database } from "lucide-react";
 import { Modal, ProcessingLoader } from "@/app/_components";
 import { TableView } from "./TableView";
 import { JsonView } from "./JsonView";
@@ -15,6 +10,20 @@ import styles from "./DatasetModal.module.scss";
 
 // Global Store
 import { useDatasetStore } from "@/store/useDatasetStore";
+
+// Extension logo paths
+const EXTENSION_LOGOS: Record<string, string> = {
+  xlsx: "/extensionsLogo/ExcelLogo.webp",
+  xls: "/extensionsLogo/ExcelLogo.webp",
+  csv: "/extensionsLogo/CsvLogo.png",
+  json: "/extensionsLogo/JsonLogo.png",
+};
+
+// Helper to get logo path by extension
+const getExtensionLogo = (fileName: string): string => {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  return EXTENSION_LOGOS[ext] || "/extensionsLogo/CsvLogo.png";
+};
 
 interface Props {
   isOpen: boolean;
@@ -25,19 +34,58 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // GLOBAL STATE
-  const { parsedData, isLoading, parseFile, reset, error } = useDatasetStore();
+  const {
+    parsedData,
+    isLoading,
+    parseFile,
+    reset,
+    error,
+    setIsLoading,
+    setError,
+  } = useDatasetStore();
+
+  // Reset loading state when modal opens/closes to prevent stuck states
+  useEffect(() => {
+    if (isOpen) {
+      // Clear any stuck loading state when modal opens
+      setIsLoading(false);
+      setError(null);
+    }
+  }, [isOpen, setIsLoading, setError]);
 
   // Veri var mı kontrolü
   const hasData = !!parsedData;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    // Prevent processing if already loading or no file selected
+    if (!file || isLoading) {
+      return;
+    }
+
+    try {
       await parseFile(file);
+    } catch {
+      // Ensure loading state is cleared on any error
+      setIsLoading(false);
+    } finally {
+      // Reset file input to allow re-selecting the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      // Safety check: ensure loading is always stopped after operation
+      const currentState = useDatasetStore.getState();
+      if (currentState.isLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleChangeClick = () => {
+    // Prevent clicking while loading
+    if (isLoading) {
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -46,13 +94,18 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
     onClose();
   };
 
-  // Header için sol taraftaki ikon (Veri yoksa varsayılan Spreadsheet ikonu)
-  const headerIcon =
-    parsedData?.type === "json" ? (
-      <FileJson size={22} />
-    ) : (
-      <FileSpreadsheet size={22} />
-    );
+  // Header için sol taraftaki ikon (Veri yoksa Database ikonu)
+  const headerIcon = parsedData?.fileName ? (
+    <Image
+      src={getExtensionLogo(parsedData.fileName)}
+      alt="File type"
+      width={34}
+      height={34}
+      style={{ objectFit: "contain" }}
+    />
+  ) : (
+    <Database size={24} />
+  );
 
   // Header için sağ taraftaki butonlar
   const headerContent = (
@@ -122,7 +175,7 @@ export const DatasetModal = ({ isOpen, onClose }: Props) => {
                 gap: "10px",
               }}
             >
-              <FileSpreadsheet size={48} opacity={0.5} />
+              <Database size={48} opacity={0.5} />
               <p>No dataset currently loaded.</p>
             </div>
           )}

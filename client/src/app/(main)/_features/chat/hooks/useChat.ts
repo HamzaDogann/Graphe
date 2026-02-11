@@ -9,8 +9,9 @@
 import { useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useChatStore } from "@/store/useChatStore";
+import { useDatasetStore } from "@/store/useDatasetStore";
 import { useChartGeneration } from "./useChartGeneration";
-import type { StoredChartData, Message } from "@/types/chat";
+import type { StoredChartData, Message, ChartDatasetInfo } from "@/types/chat";
 
 interface UseChatReturn {
   // State
@@ -53,6 +54,31 @@ export const useChat = (): UseChatReturn => {
     clearError: storeClearError,
     convertToStoredChartData,
   } = useChatStore();
+
+  // Get dataset info for chart metadata
+  const parsedData = useDatasetStore((state) => state.parsedData);
+
+  // Extract dataset info helper
+  const getDatasetInfo = useCallback((): ChartDatasetInfo | undefined => {
+    if (!parsedData?.fileName) return undefined;
+    
+    const fileName = parsedData.fileName;
+    const lastDotIndex = fileName.lastIndexOf(".");
+    
+    if (lastDotIndex === -1) {
+      return {
+        name: fileName,
+        extension: "",
+        fullName: fileName,
+      };
+    }
+    
+    return {
+      name: fileName.substring(0, lastDotIndex),
+      extension: fileName.substring(lastDotIndex + 1).toLowerCase(),
+      fullName: fileName,
+    };
+  }, [parsedData?.fileName]);
 
   // Chart generation hook
   const {
@@ -122,7 +148,7 @@ export const useChat = (): UseChatReturn => {
         let responseContent: string;
 
         if (chartData) {
-          storedChartData = convertToStoredChartData(chartData);
+          storedChartData = convertToStoredChartData(chartData, getDatasetInfo());
           responseContent = chartData.config.description || "Chart generated successfully.";
         } else {
           responseContent = genError || "I couldn't generate a chart for your request. Please try again.";
@@ -167,7 +193,7 @@ export const useChat = (): UseChatReturn => {
       let responseContent: string;
 
       if (chartData) {
-        storedChartData = convertToStoredChartData(chartData);
+        storedChartData = convertToStoredChartData(chartData, getDatasetInfo());
         responseContent = chartData.config.description || "Chart generated successfully.";
       } else {
         responseContent = genError || "I couldn't generate a chart for your request. Please try again.";
@@ -188,6 +214,7 @@ export const useChat = (): UseChatReturn => {
       updateLocalMessage,
       generateChart,
       convertToStoredChartData,
+      getDatasetInfo,
       saveChatToDB,
       saveUserMessageToDB,
       saveAssistantMessageToDB,

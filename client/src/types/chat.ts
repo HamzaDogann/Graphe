@@ -50,11 +50,23 @@ export interface ChartConfig {
 }
 
 /**
+ * Dataset info stored with chart
+ */
+export interface ChartDatasetInfo {
+  name: string; // File name without extension (e.g., "sales_data")
+  extension: string; // File extension (e.g., "csv", "xlsx", "json")
+  fullName: string; // Full file name (e.g., "sales_data.csv")
+}
+
+/**
  * Complete chart data stored in Message.chartData
  */
 export interface StoredChartData {
   type: "pie" | "bar" | "line" | "table";
   title: string;
+  description?: string; // AI-generated description
+  createdAt?: string; // ISO date string
+  datasetInfo?: ChartDatasetInfo; // Source dataset info
   data: ChartDataPoint[]; // Processed/aggregated data only
   config: ChartConfig; // How the chart was configured
   styling: ChartStyling; // Visual customization

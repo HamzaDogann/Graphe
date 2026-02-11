@@ -14,7 +14,7 @@ interface SidebarUserProps {
 }
 
 export function SidebarUser({ collapsed }: SidebarUserProps) {
-  const { user, logout } = useUserStore();
+  const { user, isLoadingUser, logout } = useUserStore();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,6 +40,25 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
     setIsMenuOpen(false);
     setIsSettingsOpen(true);
   };
+
+  // Show skeleton while loading
+  if (isLoadingUser) {
+    return (
+      <div className={styles.userContainer}>
+        {collapsed ? (
+          <div className={styles.skeletonAvatarCollapsed} />
+        ) : (
+          <div className={styles.skeletonUser}>
+            <div className={styles.skeletonAvatar} />
+            <div className={styles.skeletonInfo}>
+              <div className={styles.skeletonName} />
+              <div className={styles.skeletonEmail} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (!user) return null;
 

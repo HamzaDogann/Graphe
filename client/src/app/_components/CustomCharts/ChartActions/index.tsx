@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { HexColorPicker } from "react-colorful";
+import Image from "next/image";
 import {
   Camera,
   Palette,
@@ -23,8 +24,25 @@ import {
   Italic,
   Underline,
   ChevronDown,
+  Info,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import styles from "./ChartActions.module.scss";
+import type { ChartInfo } from "@/types/chart";
+
+// Extension logo paths
+const EXTENSION_LOGOS: Record<string, string> = {
+  csv: "/extensionsLogo/CsvLogo.png",
+  xlsx: "/extensionsLogo/ExcelLogo.webp",
+  xls: "/extensionsLogo/ExcelLogo.webp",
+  json: "/extensionsLogo/JsonLogo.png",
+};
+
+const getExtensionLogo = (extension: string): string => {
+  const ext = extension.toLowerCase();
+  return EXTENSION_LOGOS[ext] || "/extensionsLogo/CsvLogo.png";
+};
 
 // Predefined color palettes
 export const COLOR_PALETTES = {
@@ -145,6 +163,9 @@ export const DEFAULT_TYPOGRAPHY: TypographySettings = {
   isUnderline: false,
 };
 
+// Re-export ChartInfo from chart.ts
+export type { ChartInfo } from "@/types/chart";
+
 interface ChartActionsProps {
   onScreenshot?: () => void;
   onColorChange?: (colors: string[]) => void;
@@ -158,10 +179,12 @@ interface ChartActionsProps {
   showSave?: boolean;
   showDownload?: boolean;
   showFullscreen?: boolean;
+  showInfo?: boolean;
   orientation?: "horizontal" | "vertical";
   currentColors?: string[];
   colorCount?: number;
   currentTypography?: TypographySettings;
+  chartInfo?: ChartInfo;
 }
 
 // Mini Color Picker Tooltip Component
@@ -266,6 +289,196 @@ const ColorPickerTooltip = memo(
 
 ColorPickerTooltip.displayName = "ColorPickerTooltip";
 
+// Chart Info Tooltip Component
+interface ChartInfoTooltipProps {
+  chartInfo: ChartInfo;
+  onClose: () => void;
+  anchorRect: DOMRect | null;
+}
+
+// Helper to get file extension logo image
+const getExtensionImage = (extension: string, size: number = 24) => {
+  return (
+    <Image
+      src={getExtensionLogo(extension)}
+      alt={`${extension} file`}
+      width={size}
+      height={size}
+      style={{ objectFit: "contain" }}
+    />
+  );
+};
+
+// Helper to format date
+const formatDate = (dateString?: string) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const ChartInfoTooltip = memo(
+  ({ chartInfo, onClose, anchorRect }: ChartInfoTooltipProps) => {
+    const tooltipRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ top: 0, left: 0 });
+
+    // Calculate position
+    const calculatePosition = useCallback(() => {
+      if (!anchorRect) return { top: 0, left: 0 };
+
+      const tooltipWidth = 340;
+      const tooltipHeight = 300;
+
+      let left = anchorRect.right + 8;
+      let top = anchorRect.top;
+
+      // Check right overflow
+      if (left + tooltipWidth > window.innerWidth - 20) {
+        left = anchorRect.left - tooltipWidth - 8;
+      }
+      // Check left overflow
+      if (left < 20) {
+        left = 20;
+      }
+      // Check bottom overflow
+      if (top + tooltipHeight > window.innerHeight - 20) {
+        top = window.innerHeight - tooltipHeight - 20;
+      }
+      // Check top overflow
+      if (top < 20) {
+        top = 20;
+      }
+
+      return { top, left };
+    }, [anchorRect]);
+
+    // Update position on mount and anchor change
+    useEffect(() => {
+      setPosition(calculatePosition());
+    }, [calculatePosition]);
+
+    // Handle scroll and resize
+    useEffect(() => {
+      const updatePosition = () => {
+        setPosition(calculatePosition());
+      };
+
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }, [calculatePosition]);
+
+    // Close on outside click
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (
+          tooltipRef.current &&
+          !tooltipRef.current.contains(e.target as Node)
+        ) {
+          onClose();
+        }
+      };
+      const timer = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [onClose]);
+
+    if (!anchorRect) return null;
+
+    const formattedDate = formatDate(chartInfo.createdAt);
+    const fullDatasetName = chartInfo.datasetName
+      ? `${chartInfo.datasetName}${chartInfo.datasetExtension ? `.${chartInfo.datasetExtension}` : ""}`
+      : null;
+
+    return createPortal(
+      <div
+        ref={tooltipRef}
+        className={styles.chartInfoTooltip}
+        style={{ top: position.top, left: position.left }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className={styles.infoHeader}>
+          <span className={styles.infoHeaderTitle}>Chart Information</span>
+          <button
+            className={styles.infoCloseBtn}
+            onClick={onClose}
+            title="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className={styles.infoDivider} />
+
+        {/* Content */}
+        <div className={styles.infoContent}>
+          {/* Dataset */}
+          {fullDatasetName && (
+            <div className={styles.infoRow}>
+              <div className={styles.infoIconLabel}>
+                {getExtensionImage(chartInfo.datasetExtension || "csv", 22)}
+                <span className={styles.infoLabel}>Dataset</span>
+              </div>
+              <div className={styles.infoValueWithIcon}>
+                <span className={styles.infoValue}>{fullDatasetName}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Title */}
+          <div className={styles.infoRow}>
+            <div className={styles.infoIconLabel}>
+              <Type size={18} />
+              <span className={styles.infoLabel}>Title</span>
+            </div>
+            <span className={styles.infoValue}>{chartInfo.title}</span>
+          </div>
+
+          {/* Description */}
+          {chartInfo.description && (
+            <div className={styles.infoRow}>
+              <div className={styles.infoIconLabel}>
+                <FileText size={18} />
+                <span className={styles.infoLabel}>Description</span>
+              </div>
+              <span className={styles.infoValue}>{chartInfo.description}</span>
+            </div>
+          )}
+
+          {/* Created At */}
+          {formattedDate && (
+            <div className={styles.infoRow}>
+              <div className={styles.infoIconLabel}>
+                <Calendar size={18} />
+                <span className={styles.infoLabel}>Created</span>
+              </div>
+              <span className={styles.infoValue}>{formattedDate}</span>
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+  },
+);
+
+ChartInfoTooltip.displayName = "ChartInfoTooltip";
+
 // Main ChartActions Component
 export const ChartActions = memo(
   ({
@@ -281,11 +494,18 @@ export const ChartActions = memo(
     showSave = true,
     showDownload = false,
     showFullscreen = false,
+    showInfo = false,
     orientation = "vertical",
     currentColors = COLOR_PALETTES.default,
     colorCount = 4,
     currentTypography = DEFAULT_TYPOGRAPHY,
+    chartInfo,
   }: ChartActionsProps) => {
+    // Info Tooltip State
+    const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+    const infoButtonRef = useRef<HTMLButtonElement>(null);
+    const [infoButtonRect, setInfoButtonRect] = useState<DOMRect | null>(null);
+
     // Palette Menu State
     const [showPaletteMenu, setShowPaletteMenu] = useState(false);
     const [selectedPalette, setSelectedPalette] =
@@ -487,6 +707,26 @@ export const ChartActions = memo(
       };
     }, [showTypographyMenu, updateTypographyPosition]);
 
+    // Calculate info tooltip position
+    const updateInfoPosition = useCallback(() => {
+      if (infoButtonRef.current) {
+        setInfoButtonRect(infoButtonRef.current.getBoundingClientRect());
+      }
+    }, []);
+
+    // Update info tooltip position on scroll/resize
+    useEffect(() => {
+      if (showInfoTooltip) {
+        updateInfoPosition();
+        window.addEventListener("resize", updateInfoPosition);
+        window.addEventListener("scroll", updateInfoPosition, true);
+      }
+      return () => {
+        window.removeEventListener("resize", updateInfoPosition);
+        window.removeEventListener("scroll", updateInfoPosition, true);
+      };
+    }, [showInfoTooltip, updateInfoPosition]);
+
     // Click outside handler for palette menu
     useEffect(() => {
       if (!showPaletteMenu) return;
@@ -616,6 +856,21 @@ export const ChartActions = memo(
       setShowTypographyMenu(false);
       setShowTypoColorPicker(null);
       setShowFontDropdown(false);
+    }, []);
+
+    // Toggle info tooltip
+    const toggleInfoTooltip = useCallback(() => {
+      if (infoButtonRef.current) {
+        setInfoButtonRect(infoButtonRef.current.getBoundingClientRect());
+      }
+      setShowInfoTooltip((prev) => !prev);
+      setShowPaletteMenu(false);
+      setShowTypographyMenu(false);
+    }, []);
+
+    // Close info tooltip
+    const closeInfoTooltip = useCallback(() => {
+      setShowInfoTooltip(false);
     }, []);
 
     // Open color picker for a custom color
@@ -960,6 +1215,17 @@ export const ChartActions = memo(
               <Maximize2 size={18} />
             </button>
           )}
+
+          {showInfo && chartInfo && (
+            <button
+              ref={infoButtonRef}
+              className={`${styles.actionBtn} ${showInfoTooltip ? styles.active : ""}`}
+              title="Chart Info"
+              onClick={toggleInfoTooltip}
+            >
+              <Info size={18} />
+            </button>
+          )}
         </div>
 
         {/* Palette Menu Portal */}
@@ -991,6 +1257,15 @@ export const ChartActions = memo(
             onChange={(color) => handleTypographyUpdate("color", color)}
             onClose={closeTypoColorPicker}
             anchorRect={showTypoColorPicker.rect}
+          />
+        )}
+
+        {/* Chart Info Tooltip */}
+        {isMounted && showInfoTooltip && chartInfo && (
+          <ChartInfoTooltip
+            chartInfo={chartInfo}
+            onClose={closeInfoTooltip}
+            anchorRect={infoButtonRect}
           />
         )}
       </>

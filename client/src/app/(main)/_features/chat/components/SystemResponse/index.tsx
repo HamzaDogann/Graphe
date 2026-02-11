@@ -70,6 +70,7 @@ export const SystemResponse = ({
             renderData={chartData}
             messageId={messageId}
             storedStyling={storedChartData?.styling}
+            storedChartData={storedChartData}
           />
         </div>
       )}

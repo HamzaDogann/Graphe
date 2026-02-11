@@ -8,12 +8,13 @@ import {
   DEFAULT_CHART_COLORS,
   ChartStylingUpdate,
 } from "@/types/chart";
-import type { ChartStyling } from "@/types/chat";
+import type { ChartStyling, StoredChartData } from "@/types/chat";
 import { useChatStore } from "@/store/useChatStore";
 import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
 import { TableChart } from "../TableChart";
+import type { ChartInfo } from "../ChartActions";
 import styles from "./ChartRenderer.module.scss";
 
 // Debounce delay for saving styling (2 seconds)
@@ -23,6 +24,7 @@ interface ChartRendererProps {
   renderData: ChartRenderData;
   messageId?: string; // For saving styling updates
   storedStyling?: ChartStyling; // Styling from database
+  storedChartData?: StoredChartData; // Full stored chart data for info tooltip
   animate?: boolean;
   showLegend?: boolean;
   colorScheme?: string[];
@@ -33,6 +35,7 @@ export const ChartRenderer = ({
   renderData,
   messageId,
   storedStyling,
+  storedChartData,
   animate = true,
   showLegend = true,
   colorScheme,
@@ -112,6 +115,18 @@ export const ChartRenderer = ({
     return localColors.length > 0 ? localColors : DEFAULT_CHART_COLORS;
   }, [localColors]);
 
+  // Build chart info for info tooltip
+  const chartInfo: ChartInfo | undefined = useMemo(() => {
+    if (!storedChartData) return undefined;
+    return {
+      title: storedChartData.title,
+      description: storedChartData.description,
+      createdAt: storedChartData.createdAt,
+      datasetName: storedChartData.datasetInfo?.name || "",
+      datasetExtension: storedChartData.datasetInfo?.extension || "",
+    };
+  }, [storedChartData]);
+
   // Build chart props based on type
   const chartElement = useMemo(() => {
     switch (type) {
@@ -128,6 +143,7 @@ export const ChartRenderer = ({
             onDataPointClick={onDataPointClick}
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
+            chartInfo={chartInfo}
           />
         );
 
@@ -145,6 +161,7 @@ export const ChartRenderer = ({
             onDataPointClick={onDataPointClick}
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
+            chartInfo={chartInfo}
           />
         );
 
@@ -163,6 +180,7 @@ export const ChartRenderer = ({
             onDataPointClick={onDataPointClick}
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
+            chartInfo={chartInfo}
           />
         );
 

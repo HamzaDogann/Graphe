@@ -10,7 +10,9 @@ interface User {
 
 interface UserState {
   user: User | null;
+  isLoadingUser: boolean;
   setUser: (user: User) => void;
+  setIsLoadingUser: (loading: boolean) => void;
   logout: () => void;
 }
 
@@ -18,8 +20,10 @@ export const useUserStore = create<UserState>()(
   devtools(
     (set) => ({
       user: null,
-      setUser: (user) => set({ user }),
-      logout: () => set({ user: null }),
+      isLoadingUser: true, // Start as loading until session is resolved
+      setUser: (user) => set({ user, isLoadingUser: false }),
+      setIsLoadingUser: (loading) => set({ isLoadingUser: loading }),
+      logout: () => set({ user: null, isLoadingUser: false }),
     }),
     { name: "UserStore" }
   )

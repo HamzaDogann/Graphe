@@ -131,6 +131,43 @@ export const parseAIResponse = (responseText: string): AIChartResponse => {
     }
     jsonStr = jsonStr.trim();
     
+    // Try to find JSON object in the response
+    const jsonStart = jsonStr.indexOf("{");
+    const jsonEnd = jsonStr.lastIndexOf("}");
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
+    }
+    
+    // Try to fix common truncation issues
+    // Count opening and closing braces
+    const openBraces = (jsonStr.match(/{/g) || []).length;
+    const closeBraces = (jsonStr.match(/}/g) || []).length;
+    
+    // If more opening braces, try to close them
+    if (openBraces > closeBraces) {
+      // Try to fix truncated JSON by closing it
+      // First, try to find the last complete key-value pair
+      const lastComma = jsonStr.lastIndexOf(",");
+      const lastColon = jsonStr.lastIndexOf(":");
+      
+      if (lastComma > lastColon) {
+        // Truncated after a comma, remove it and close
+        jsonStr = jsonStr.slice(0, lastComma) + "}".repeat(openBraces - closeBraces);
+      } else if (lastColon !== -1) {
+        // Truncated in the middle of a value, try to close the string if needed
+        const afterColon = jsonStr.slice(lastColon + 1).trim();
+        if (afterColon.startsWith('"') && !afterColon.endsWith('"')) {
+          // Unterminated string, close it
+          jsonStr = jsonStr + '"' + "}".repeat(openBraces - closeBraces);
+        } else {
+          jsonStr = jsonStr + "}".repeat(openBraces - closeBraces);
+        }
+      } else {
+        jsonStr = jsonStr + "}".repeat(openBraces - closeBraces);
+      }
+    }
+    
     // Parse JSON
     const config = JSON.parse(jsonStr) as AIChartConfig;
     
@@ -154,9 +191,19 @@ export const parseAIResponse = (responseText: string): AIChartResponse => {
       rawResponse: responseText,
     };
   } catch (error) {
+    // Provide user-friendly error message for JSON parsing issues
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    let userMessage = "Failed to parse AI response";
+    
+    if (errorMsg.includes("Unterminated string") || errorMsg.includes("Unexpected end")) {
+      userMessage = "AI response was incomplete. Please try again.";
+    } else if (errorMsg.includes("Unexpected token")) {
+      userMessage = "AI returned an invalid response. Please try again.";
+    }
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to parse AI response",
+      error: userMessage,
       rawResponse: responseText,
     };
   }

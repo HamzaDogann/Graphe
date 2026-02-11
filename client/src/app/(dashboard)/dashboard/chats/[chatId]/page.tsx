@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { useChatStore, selectActiveChat } from "@/store/useChatStore";
 import { isValidChatId } from "@/lib/generateId";
 import { ProcessingLoader } from "@/app/_components";
-import { MessageSquare, Hash, ArrowLeft } from "lucide-react";
+import { MessageSquare, Hash, ArrowLeft, ShieldX } from "lucide-react";
 import Link from "next/link";
 import styles from "./chat.module.scss";
 
@@ -31,6 +31,7 @@ export default function ChatDetailPage() {
     setActiveChat,
     fetchChats,
     isUnsavedChat,
+    accessDenied,
   } = useChatStore();
   const activeChat = useChatStore(selectActiveChat);
   const isUnsaved = isUnsavedChat(chatId);
@@ -55,6 +56,23 @@ export default function ChatDetailPage() {
   // "new" should be handled by /chats/new route, but guard against edge cases
   if (chatId === "new") {
     return <ChatInterface />;
+  }
+
+  // Access denied - user doesn't have permission to view this chat
+  if (accessDenied) {
+    return (
+      <div className={styles.errorState}>
+        <div className={styles.errorIcon}>
+          <ShieldX size={48} />
+        </div>
+        <h2>Access Denied</h2>
+        <p>You don&apos;t have permission to view this chat</p>
+        <Link href="/dashboard" className={styles.backLink}>
+          <ArrowLeft size={18} />
+          Back to Dashboard
+        </Link>
+      </div>
+    );
   }
 
   // Show loading while transitioning between chats or fetching

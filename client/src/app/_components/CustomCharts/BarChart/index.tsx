@@ -38,6 +38,7 @@ export const BarChart = ({
   onDataPointClick,
   onStylingChange,
   initialTypography,
+  chartInfo,
 }: BarChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() =>
@@ -370,6 +371,8 @@ export const BarChart = ({
         colorCount={Math.min(data.length, 8)}
         currentTypography={typography}
         orientation="vertical"
+        showInfo={!!chartInfo}
+        chartInfo={chartInfo}
       />
     </div>
   );

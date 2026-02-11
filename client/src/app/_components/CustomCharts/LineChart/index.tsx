@@ -32,6 +32,7 @@ export const LineChart = ({
   onDataPointClick,
   onStylingChange,
   initialTypography,
+  chartInfo,
 }: LineChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() => [
@@ -358,6 +359,8 @@ export const LineChart = ({
         colorCount={1}
         currentTypography={typography}
         orientation="vertical"
+        showInfo={!!chartInfo}
+        chartInfo={chartInfo}
       />
     </div>
   );

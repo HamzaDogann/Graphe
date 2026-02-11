@@ -329,6 +329,17 @@
     text-align: center;
 }
 
+.uploadError {
+    font-size: 0.93rem;
+    color: #ef4444;
+    margin-top: 18px;
+    text-align: center;
+    padding: 8px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    max-width: 400px;
+}
+
 @media (max-width: 900px) {
     .cardGrid {
         flex-direction: column;

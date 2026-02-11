@@ -52,6 +52,15 @@ export interface ChartStylingUpdate {
   };
 }
 
+// Chart info for displaying metadata in info tooltip
+export interface ChartInfo {
+  datasetName: string;
+  datasetExtension: string;
+  title: string;
+  description?: string;
+  createdAt?: string;
+}
+
 // Common props for all chart components
 export interface BaseChartProps {
   data: ChartDataPoint[];
@@ -73,6 +82,7 @@ export interface BaseChartProps {
     isItalic: boolean;
     isUnderline: boolean;
   };
+  chartInfo?: ChartInfo;
 }
 
 // Pie Chart specific props
