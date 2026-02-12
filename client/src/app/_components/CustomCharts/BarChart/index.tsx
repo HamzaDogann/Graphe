@@ -3,12 +3,10 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import html2canvas from "html2canvas";
-import {
-  ChartActions,
-  COLOR_PALETTES,
-  TypographySettings,
-  DEFAULT_TYPOGRAPHY,
-} from "../ChartActions";
+import { ChartActions } from "../ChartActions";
+import { COLOR_PALETTES } from "../ChartActions/constants";
+import { TypographySettings } from "../ChartActions/types";
+import { DEFAULT_TYPOGRAPHY } from "../ChartActions/constants";
 import { BarChartProps, DEFAULT_CHART_COLORS } from "@/types/chart";
 import styles from "./BarChart.module.scss";
 

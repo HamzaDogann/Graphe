@@ -3,11 +3,9 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import html2canvas from "html2canvas";
-import {
-  ChartActions,
-  TypographySettings,
-  DEFAULT_TYPOGRAPHY,
-} from "../ChartActions";
+import { ChartActions } from "../ChartActions";
+import { TypographySettings } from "../ChartActions/types";
+import { DEFAULT_TYPOGRAPHY } from "../ChartActions/constants";
 import { TableChartProps } from "@/types/chart";
 import styles from "./TableChart.module.scss";
 

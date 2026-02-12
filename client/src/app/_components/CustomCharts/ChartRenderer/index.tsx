@@ -14,7 +14,7 @@ import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
 import { TableChart } from "../TableChart";
-import type { ChartInfo } from "../ChartActions";
+import type { ChartInfo } from "@/types/chart";
 import styles from "./ChartRenderer.module.scss";
 
 // Debounce delay for saving styling (2 seconds)
