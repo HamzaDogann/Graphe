@@ -2,7 +2,6 @@
 
 import React, { useRef, useCallback, memo, useState, useEffect } from "react";
 import Moveable from "react-moveable";
-import { ChartFactory } from "@/components/ChartFactory";
 import { CanvasElement as CanvasElementType } from "@/store/useCanvasEditorStore";
 import styles from "../CanvasWorkspace.module.scss";
 
@@ -143,7 +142,7 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
       >
         <div className={styles.elementContent}>
           {element.type === "chart" && element.chartConfig ? (
-            <ChartFactory config={element.chartConfig} />
+            <span>Chart</span>
           ) : element.type === "chart" ? (
             <div className={styles.chartPlaceholder}>
               <span>Chart</span>
