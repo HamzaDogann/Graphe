@@ -37,6 +37,10 @@ export const PieChart = ({
   onStylingChange,
   initialTypography,
   chartInfo,
+  isFavorite = false,
+  isSaving = false,
+  onToggleFavorite,
+  hideSaveButton = false,
 }: PieChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() =>
@@ -316,13 +320,16 @@ export const PieChart = ({
         onScreenshot={handleScreenshot}
         onColorChange={handleColorChange}
         onTypographyChange={handleTypographyChange}
-        onSave={handleSave}
+        onSave={onToggleFavorite}
         currentColors={colors}
         colorCount={Math.min(data.length, 8)}
         currentTypography={typography}
         orientation="vertical"
         showInfo={!!chartInfo}
         chartInfo={chartInfo}
+        isFavorite={isFavorite}
+        isSaving={isSaving}
+        showSave={!hideSaveButton}
       />
     </div>
   );

@@ -107,7 +107,10 @@ export interface UserMessage extends BaseMessage {
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
   content?: string; // Text response
-  chartData?: StoredChartData; // Chart response
+  chartData?: StoredChartData; // Chart response (for backward compatibility, will migrate to chartId)
+  chartId?: string; // Reference to Chart table
+  isFavorite?: boolean; // Whether chart is favorited
+  isSaving?: boolean; // Whether favorite toggle is in progress
 }
 
 export type Message = UserMessage | AssistantMessage;

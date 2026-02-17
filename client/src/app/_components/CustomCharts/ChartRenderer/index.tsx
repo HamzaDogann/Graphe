@@ -10,6 +10,7 @@ import {
 } from "@/types/chart";
 import type { ChartStyling, StoredChartData } from "@/types/chat";
 import { useChatStore } from "@/store/useChatStore";
+import { useChartsStore } from "@/store/useChartsStore";
 import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
@@ -23,46 +24,80 @@ const DEBOUNCE_DELAY = 2000;
 interface ChartRendererProps {
   renderData: ChartRenderData;
   messageId?: string; // For saving styling updates
+  chartId?: string; // For chart favorite operations
   storedStyling?: ChartStyling; // Styling from database
   storedChartData?: StoredChartData; // Full stored chart data for info tooltip
   animate?: boolean;
   showLegend?: boolean;
   colorScheme?: string[];
+  isFavorite?: boolean;
+  isSaving?: boolean;
+  onToggleFavorite?: () => void;
+  onStylingChange?: (styling: Partial<ChartStyling>) => void; // External callback for styling updates
   onDataPointClick?: (dataPoint: ChartDataPoint) => void;
+  hideSaveButton?: boolean; // Hide save button in chart actions (for charts detail page)
 }
 
 export const ChartRenderer = ({
   renderData,
   messageId,
+  chartId,
   storedStyling,
   storedChartData,
   animate = true,
   showLegend = true,
   colorScheme,
+  isFavorite = false,
+  isSaving = false,
+  onToggleFavorite,
+  onStylingChange: externalOnStylingChange,
   onDataPointClick,
+  hideSaveButton = false,
 }: ChartRendererProps) => {
   const { type, config, processedData } = renderData;
   const updateMessageStyling = useChatStore(
     (state) => state.updateMessageStyling,
   );
+  const updateChartStyling = useChartsStore(
+    (state) => state.updateChartStyling,
+  );
+
+  // Subscribe to cached chart styling for reactive updates
+  // When charts page updates styling, this will trigger re-render with latest values
+  const cachedChartStyling = useChartsStore(
+    (state) => chartId ? state.chartsDetailCache[chartId]?.styling : undefined
+  );
+
+  // Determine effective initial styling (cached > stored > colorScheme > default)
+  const effectiveInitialColors = cachedChartStyling?.colors || storedStyling?.colors || colorScheme || DEFAULT_CHART_COLORS;
+  const effectiveInitialTypography = cachedChartStyling?.typography || storedStyling?.typography;
 
   // Local styling state - immediately reflects user changes
-  const [localColors, setLocalColors] = useState<string[]>(
-    storedStyling?.colors || colorScheme || DEFAULT_CHART_COLORS,
-  );
+  const [localColors, setLocalColors] = useState<string[]>(effectiveInitialColors);
   const [localTypography, setLocalTypography] = useState<
     ChartStyling["typography"] | undefined
-  >(storedStyling?.typography);
+  >(effectiveInitialTypography);
+
+  // Track previous cached styling to detect external changes
+  const prevCachedStylingRef = useRef<string>(JSON.stringify(cachedChartStyling));
+
+  // Sync local state when cachedChartStyling changes from external source (charts page)
+  useEffect(() => {
+    const currentCachedKey = JSON.stringify(cachedChartStyling);
+    if (cachedChartStyling && currentCachedKey !== prevCachedStylingRef.current) {
+      prevCachedStylingRef.current = currentCachedKey;
+      if (cachedChartStyling.colors) {
+        setLocalColors(cachedChartStyling.colors);
+      }
+      if (cachedChartStyling.typography) {
+        setLocalTypography(cachedChartStyling.typography);
+      }
+    }
+  }, [cachedChartStyling]);
 
   // Track pending changes for debounced save
   const pendingChangesRef = useRef<Partial<ChartStyling>>({});
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // NOT: storedStyling ile sync YAPILMIYOR
-  // Initial değerler useState'te set ediliyor
-  // Sonraki değişiklikler sadece local state'ı güncelliyor
-  // DB'ye kaydet ama DB'den geri gelen değerle state güncelleme
-  // Bu sayede client-DB race condition önlenir
 
   // Cleanup on unmount
   useEffect(() => {
@@ -73,9 +108,13 @@ export const ChartRenderer = ({
         if (messageId && Object.keys(pendingChangesRef.current).length > 0) {
           updateMessageStyling(messageId, pendingChangesRef.current);
         }
+        // Also sync to charts store if we have chartId
+        if (chartId && Object.keys(pendingChangesRef.current).length > 0) {
+          updateChartStyling(chartId, pendingChangesRef.current);
+        }
       }
     };
-  }, [messageId, updateMessageStyling]);
+  }, [messageId, chartId, updateMessageStyling, updateChartStyling]);
 
   // Debounced save function
   const debouncedSave = useCallback(() => {
@@ -84,12 +123,19 @@ export const ChartRenderer = ({
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      if (messageId && Object.keys(pendingChangesRef.current).length > 0) {
-        updateMessageStyling(messageId, pendingChangesRef.current);
+      if (Object.keys(pendingChangesRef.current).length > 0) {
+        // Save to message if we have messageId
+        if (messageId) {
+          updateMessageStyling(messageId, pendingChangesRef.current);
+        }
+        // Also update charts store if we have chartId (keeps cache in sync)
+        if (chartId) {
+          updateChartStyling(chartId, pendingChangesRef.current);
+        }
         pendingChangesRef.current = {};
       }
     }, DEBOUNCE_DELAY);
-  }, [messageId, updateMessageStyling]);
+  }, [messageId, chartId, updateMessageStyling, updateChartStyling]);
 
   // Handle styling changes from charts
   const handleStylingChange = useCallback(
@@ -104,10 +150,15 @@ export const ChartRenderer = ({
         pendingChangesRef.current.typography = styling.typography;
       }
 
+      // Call external callback if provided (for syncing with external stores)
+      if (externalOnStylingChange) {
+        externalOnStylingChange(pendingChangesRef.current);
+      }
+
       // Schedule debounced save to DB
       debouncedSave();
     },
-    [debouncedSave],
+    [debouncedSave, externalOnStylingChange],
   );
 
   // Effective color scheme for rendering
@@ -144,6 +195,10 @@ export const ChartRenderer = ({
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
             chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
           />
         );
 
@@ -162,6 +217,10 @@ export const ChartRenderer = ({
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
             chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
           />
         );
 
@@ -181,6 +240,10 @@ export const ChartRenderer = ({
             onStylingChange={handleStylingChange}
             initialTypography={localTypography}
             chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
           />
         );
 
@@ -210,6 +273,10 @@ export const ChartRenderer = ({
             description={config.description}
             sortable={true}
             pageSize={10}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
           />
         );
 
@@ -230,6 +297,10 @@ export const ChartRenderer = ({
     onDataPointClick,
     handleStylingChange,
     localTypography,
+    chartInfo,
+    isFavorite,
+    isSaving,
+    onToggleFavorite,
   ]);
 
   return <div className={styles.chartRenderer}>{chartElement}</div>;

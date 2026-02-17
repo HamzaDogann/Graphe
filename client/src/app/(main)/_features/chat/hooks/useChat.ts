@@ -155,8 +155,9 @@ export const useChat = (): UseChatReturn => {
         }
 
         // Step 8: Update loading message to assistant message locally (INSTANT)
+        const newMessageId = `assistant-${Date.now()}`;
         const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`, // New ID to stop loading animation
+          id: newMessageId, // New ID to stop loading animation
           chatId: currentChatId!,
           role: "assistant",
           content: responseContent,
@@ -166,8 +167,8 @@ export const useChat = (): UseChatReturn => {
         };
         updateLocalMessage(loadingId, assistantMessage, currentChatId!);
 
-        // Step 9: Fire-and-forget - save assistant message to DB
-        saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData);
+        // Step 9: Fire-and-forget - save assistant message to DB (creates Chart record if chartData exists)
+        saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData, newMessageId);
 
         return;
       }
@@ -200,10 +201,10 @@ export const useChat = (): UseChatReturn => {
       }
 
       // Step 6: Update loading message to assistant message locally (instant)
-      addLocalAssistantMessage(responseContent, storedChartData, loadingId, currentChatId!);
+      const assistantMsg = addLocalAssistantMessage(responseContent, storedChartData, loadingId, currentChatId!);
 
-      // Step 7: Fire-and-forget - save assistant message to DB
-      saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData);
+      // Step 7: Fire-and-forget - save assistant message to DB (creates Chart record if chartData exists)
+      saveAssistantMessageToDB(currentChatId!, responseContent, storedChartData, assistantMsg?.id);
     },
     [
       activeChatId,

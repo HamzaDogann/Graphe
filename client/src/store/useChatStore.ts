@@ -16,6 +16,7 @@ import type {
 } from "@/types/chat";
 import type { ChartRenderData } from "@/types/chart";
 import { generateChatId } from "@/lib/generateId";
+import { useChartsStore, type ChartDetail } from "./useChartsStore";
 
 // ===== STATE TYPES =====
 
@@ -67,13 +68,17 @@ interface ChatActions {
   saveAssistantMessageToDB: (
     chatId: string,
     content: string,
-    chartData?: StoredChartData
+    chartData?: StoredChartData,
+    localMessageId?: string
   ) => void;
   updateMessageStyling: (
     messageId: string,
     styling: Partial<ChartStyling>
   ) => Promise<boolean>;
   deleteMessage: (messageId: string) => Promise<boolean>;
+
+  // Chart favorites
+  toggleChartFavorite: (messageId: string) => Promise<boolean>;
 
   // Utility
   clearError: () => void;
@@ -256,10 +261,29 @@ export const useChatStore = create<ChatStore>()(
         
         // Önce cache kontrol et
         if (chatId && messagesCache[chatId]) {
-          // Cache'de var - hemen göster, DB'ye gitme
+          // Cache'de var - chartsDetailCache ile senkronize et
+          const chartsStore = useChartsStore.getState();
+          const { chartsDetailCache } = chartsStore;
+          
+          // Mesajlardaki chartData'ları güncel chartsDetailCache'den güncelle
+          const syncedMessages = messagesCache[chatId].map((msg) => {
+            if (msg.chartId && msg.chartData && chartsDetailCache[msg.chartId]) {
+              const cachedChart = chartsDetailCache[msg.chartId];
+              return {
+                ...msg,
+                chartData: {
+                  ...msg.chartData,
+                  styling: cachedChart.styling,
+                },
+                isFavorite: cachedChart.isFavorite,
+              };
+            }
+            return msg;
+          });
+          
           set({ 
             activeChatId: chatId, 
-            messages: messagesCache[chatId],
+            messages: syncedMessages,
             isLoadingMessages: false 
           });
         } else {
@@ -388,11 +412,53 @@ export const useChatStore = create<ChatStore>()(
 
           const fetchedMessages = data.chat.messages || [];
 
+          // Get charts store state to check for cached data
+          const chartsStore = useChartsStore.getState();
+          const { chartsDetailCache } = chartsStore;
+
+          // Transform messages: convert chart relation to chartData format
+          // Use cached chart data from chartsStore if available (more up-to-date)
+          const transformedMessages = fetchedMessages.map((msg: any) => {
+            if (msg.chart) {
+              const chartId = msg.chart.id;
+              const cachedChart = chartsDetailCache[chartId];
+
+              // Use cached data if available (has latest styling changes)
+              const chartSource = cachedChart || msg.chart;
+
+              // Convert Chart record to StoredChartData format
+              const chartData: StoredChartData = {
+                type: chartSource.type,
+                title: chartSource.title,
+                description: chartSource.description || undefined,
+                createdAt: chartSource.createdAt,
+                datasetInfo: chartSource.datasetName
+                  ? {
+                      name: chartSource.datasetName,
+                      extension: chartSource.datasetExtension || "",
+                    }
+                  : undefined,
+                data: chartSource.data,
+                config: chartSource.config,
+                styling: chartSource.styling,
+                tableData: chartSource.tableData || undefined,
+              };
+              return {
+                ...msg,
+                chartId: chartId,
+                chartData,
+                isFavorite: chartSource.isFavorite || false,
+                chart: undefined, // Remove nested chart object
+              };
+            }
+            return msg;
+          });
+
           // Sadece hala aynı chat aktifse güncelle (race condition önleme)
           const { activeChatId } = get();
           if (activeChatId === chatId) {
             set({
-              messages: fetchedMessages,
+              messages: transformedMessages,
               isLoadingMessages: false,
             });
           }
@@ -401,7 +467,7 @@ export const useChatStore = create<ChatStore>()(
           set((state) => ({
             messagesCache: {
               ...state.messagesCache,
-              [chatId]: fetchedMessages,
+              [chatId]: transformedMessages,
             },
           }));
         } catch (error) {
@@ -563,10 +629,12 @@ export const useChatStore = create<ChatStore>()(
       },
 
       // Fire-and-forget: Save assistant message to DB (no state update on return)
+      // API creates Chart record if chartData exists and returns chartId
       saveAssistantMessageToDB: (
         chatId: string,
         content: string,
-        chartData?: StoredChartData
+        chartData?: StoredChartData,
+        localMessageId?: string // Local message ID to update with chartId
       ) => {
         // Don't await - fire and forget
         fetch(`/api/chats/${chatId}/messages`, {
@@ -578,8 +646,41 @@ export const useChatStore = create<ChatStore>()(
             if (!response.ok) {
               const data = await response.json();
               console.error("Failed to save assistant message:", data.error);
+              return;
             }
-            // Success - don't update state, client already has the message
+            
+            // If chartData was provided, API created a Chart record
+            // Update local message with chartId
+            const data = await response.json();
+            if (data.chartId && localMessageId && chartData) {
+              // Update message with chartId
+              set((state) => ({
+                messages: state.messages.map((m) =>
+                  m.id === localMessageId && m.role === "assistant"
+                    ? { ...m, chartId: data.chartId, isFavorite: false }
+                    : m
+                ),
+              }));
+
+              // Immediately add to chartsStore cache for optimistic UI
+              const chartDetail: ChartDetail = {
+                id: data.chartId,
+                type: chartData.type,
+                title: chartData.title,
+                description: chartData.description || null,
+                datasetName: chartData.datasetInfo?.name || null,
+                datasetExtension: chartData.datasetInfo?.extension || null,
+                thumbnail: null,
+                isFavorite: false,
+                createdAt: chartData.createdAt || new Date().toISOString(),
+                updatedAt: chartData.createdAt || new Date().toISOString(),
+                data: chartData.data,
+                config: chartData.config,
+                styling: chartData.styling,
+                tableData: chartData.tableData || null,
+              };
+              useChartsStore.getState().addChartToCache(chartDetail);
+            }
           })
           .catch((error) => {
             console.error("Failed to save assistant message:", error);
@@ -590,9 +691,13 @@ export const useChatStore = create<ChatStore>()(
         messageId: string,
         styling: Partial<ChartStyling>
       ) => {
-        const { activeChatId } = get();
+        const { activeChatId, messages } = get();
 
         if (!activeChatId) return false;
+
+        // Find the message to get chartId
+        const message = messages.find((m) => m.id === messageId);
+        if (!message || message.role !== "assistant") return false;
 
         // Helper: Mesajları styling ile güncelle
         const updateMessages = (msgs: Message[]) =>
@@ -622,23 +727,21 @@ export const useChatStore = create<ChatStore>()(
         });
 
         try {
-          const response = await fetch(
-            `/api/chats/${activeChatId}/messages/${messageId}`,
-            {
+          // If message has chartId, update via Chart API (not Message API)
+          if (message.chartId) {
+            const response = await fetch(`/api/charts/${message.chartId}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                chartData: { styling },
-              }),
+              body: JSON.stringify({ styling }),
+            });
+
+            if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.error || "Failed to update styling");
             }
-          );
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || "Failed to update styling");
           }
+          // If no chartId, just update local state (no DB persistence)
 
-          // DB'ye kaydedildi - ChartRenderer sync yapmadığı için race condition yok
           set({ isSavingChart: false });
 
           return true;
@@ -677,6 +780,75 @@ export const useChatStore = create<ChatStore>()(
           const message =
             error instanceof Error ? error.message : "Failed to delete message";
           set({ error: message });
+          return false;
+        }
+      },
+
+      // ===== CHART FAVORITES =====
+
+      toggleChartFavorite: async (messageId: string): Promise<boolean> => {
+        const { messages } = get();
+
+        // Find the message
+        const message = messages.find((m) => m.id === messageId);
+        if (!message || message.role !== "assistant" || !message.chartId) {
+          console.warn("Cannot toggle favorite: message has no chartId");
+          return false;
+        }
+
+        const currentlyFavorited = message.isFavorite || false;
+        const chartId = message.chartId!;
+
+        // Optimistic update - both message and chartsStore
+        set((state) => ({
+          messages: state.messages.map((m) =>
+            m.id === messageId && m.role === "assistant"
+              ? { ...m, isFavorite: !currentlyFavorited, isSaving: true }
+              : m
+          ),
+        }));
+        useChartsStore.getState().updateChartInCache(chartId, {
+          isFavorite: !currentlyFavorited,
+        });
+
+        try {
+          // Chart already exists in DB, just toggle isFavorite
+          const response = await fetch(`/api/charts/${chartId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isFavorite: !currentlyFavorited }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to toggle favorite");
+          }
+
+          // Update message (remove isSaving flag)
+          set((state) => ({
+            messages: state.messages.map((m) =>
+              m.id === messageId && m.role === "assistant"
+                ? { ...m, isSaving: false }
+                : m
+            ),
+          }));
+
+          return true;
+        } catch (error) {
+          // Rollback on error - both message and chartsStore
+          set((state) => ({
+            messages: state.messages.map((m) =>
+              m.id === messageId && m.role === "assistant"
+                ? { ...m, isFavorite: currentlyFavorited, isSaving: false }
+                : m
+            ),
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to toggle favorite",
+          }));
+          useChartsStore.getState().updateChartInCache(chartId, {
+            isFavorite: currentlyFavorited,
+          });
           return false;
         }
       },

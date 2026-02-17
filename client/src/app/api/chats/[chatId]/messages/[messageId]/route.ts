@@ -1,15 +1,17 @@
 /**
  * Single Message API Route
  * 
- * PATCH  /api/chats/[chatId]/messages/[messageId] - Update message (styling, content)
+ * PATCH  /api/chats/[chatId]/messages/[messageId] - Update message content
  * DELETE /api/chats/[chatId]/messages/[messageId] - Delete a message
+ * 
+ * NOTE: Chart styling updates are handled via /api/charts/[chartId] endpoint
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import type { UpdateMessageRequest, StoredChartData } from "@/types/chat";
+import type { UpdateMessageRequest } from "@/types/chat";
 import { Prisma } from "@prisma/client";
 
 interface RouteParams {
@@ -18,7 +20,7 @@ interface RouteParams {
 
 /**
  * PATCH /api/chats/[chatId]/messages/[messageId]
- * Update a message (typically for updating chart styling)
+ * Update a message content (styling updates go through Chart API)
  */
 export async function PATCH(
   request: NextRequest,
@@ -73,31 +75,16 @@ export async function PATCH(
     // Parse request body
     const body: UpdateMessageRequest = await request.json();
 
-    // Prepare update data
+    // Prepare update data - only content is updatable on Message
     const updateData: Prisma.MessageUpdateInput = {};
 
     if (body.content !== undefined) {
       updateData.content = body.content;
     }
 
-    // Merge chartData updates (for partial styling updates)
-    if (body.chartData !== undefined) {
-      const existingChartData = existingMessage.chartData as StoredChartData | null;
-      
-      if (existingChartData) {
-        // Merge existing with new data
-        const mergedData = {
-          ...existingChartData,
-          ...body.chartData,
-          // Deep merge styling if provided
-          styling: body.chartData.styling 
-            ? { ...existingChartData.styling, ...body.chartData.styling }
-            : existingChartData.styling,
-        };
-        updateData.chartData = JSON.parse(JSON.stringify(mergedData));
-      } else {
-        updateData.chartData = JSON.parse(JSON.stringify(body.chartData));
-      }
+    // If no valid updates, return success without DB call
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ message: existingMessage });
     }
 
     // Update message

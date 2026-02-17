@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import styles from "./MessageList.module.scss";
 
 // Alt bileşenler (Folder yapına göre importlar)
@@ -9,6 +9,7 @@ import { SystemResponseLoading } from "../SystemResponseLoading";
 import { SystemResponse } from "../SystemResponse";
 import type { Message as StoreMessage, StoredChartData } from "@/types/chat";
 import { storedToRenderData } from "@/types/chat";
+import { useChatStore } from "@/store/useChatStore";
 
 // Legacy Message type for backward compatibility
 export interface Message {
@@ -39,6 +40,18 @@ export const MessageList = ({ messages }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef<number>(0);
   const prevLastMessageIdRef = useRef<string | null>(null);
+
+  const toggleChartFavorite = useChatStore(
+    (state) => state.toggleChartFavorite,
+  );
+
+  // Create stable callback for favorite toggle
+  const handleToggleFavorite = useCallback(
+    (messageId: string) => {
+      toggleChartFavorite(messageId);
+    },
+    [toggleChartFavorite],
+  );
 
   // Scroll sadece yeni mesaj eklendiğinde (sayı arttığında veya son mesaj değiştiğinde)
   useEffect(() => {
@@ -96,6 +109,10 @@ export const MessageList = ({ messages }: MessageListProps) => {
                 description={message.content || chartData?.title}
                 chartData={renderData}
                 storedChartData={chartData}
+                chartId={message.chartId}
+                isFavorite={message.isFavorite}
+                isSaving={message.isSaving}
+                onToggleFavorite={() => handleToggleFavorite(message.id)}
               />
             );
           }

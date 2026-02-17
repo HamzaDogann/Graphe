@@ -23,6 +23,7 @@ model User {
   datasets Dataset[]
   canvases Canvas[]
   chats    Chat[]
+  charts   Chart[]
 }
 
 model Account {
@@ -98,12 +99,50 @@ model Message {
   chatId    String
   role      String // "user" | "assistant"
   content   String?  @db.Text // Text content (for user prompts and text responses)
-  chartData Json? // Chart data (for chart responses) - contains type, data, styling
+  chartId   String? // Reference to Chart for chart responses
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat  Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chart Chart? @relation(fields: [chartId], references: [id], onDelete: SetNull)
 
   @@index([chatId])
+  @@index([chartId])
+  @@index([createdAt])
+}
+
+// ===== CHARTS SYSTEM =====
+
+model Chart {
+  id          String  @id @default(uuid())
+  userId      String
+  type        String // "pie" | "bar" | "line" | "table"
+  title       String
+  description String? @db.Text
+
+  // Dataset info
+  datasetName      String?
+  datasetExtension String?
+
+  // Chart data & config (JSON)
+  data      Json // ChartDataPoint[]
+  config    Json // ChartConfig
+  styling   Json // ChartStyling
+  tableData Json? // For table charts: { headers, rows }
+
+  // Thumbnail for preview (base64, small size)
+  thumbnail String? @db.Text
+
+  // Favorite status
+  isFavorite Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@index([isFavorite])
   @@index([createdAt])
 }

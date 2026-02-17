@@ -6,7 +6,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import type { CreateMessageRequest } from "@/types/chat";
@@ -72,15 +71,38 @@ export async function POST(
       );
     }
 
-    // Create message
+    let chartId: string | null = null;
+
+    // If assistant message has chartData, create Chart record first
+    if (body.role === "assistant" && body.chartData) {
+      const chartData = body.chartData;
+      
+      const chart = await prisma.chart.create({
+        data: {
+          userId: user.id,
+          type: chartData.type,
+          title: chartData.title || "Untitled Chart",
+          description: chartData.description || null,
+          datasetName: chartData.datasetInfo?.name || null,
+          datasetExtension: chartData.datasetInfo?.extension || null,
+          data: chartData.data as any,
+          config: chartData.config as any,
+          styling: chartData.styling as any,
+          tableData: chartData.tableData as any || null,
+          isFavorite: false, // Default: not favorited
+        },
+      });
+      
+      chartId = chart.id;
+    }
+
+    // Create message with chartId reference (not chartData JSON)
     const message = await prisma.message.create({
       data: {
         chatId,
         role: body.role,
         content: body.content || null,
-        chartData: body.chartData 
-          ? JSON.parse(JSON.stringify(body.chartData)) 
-          : Prisma.JsonNull,
+        chartId: chartId,
       },
     });
 
@@ -100,7 +122,7 @@ export async function POST(
       });
     }
 
-    return NextResponse.json({ message, chatTitle }, { status: 201 });
+    return NextResponse.json({ message, chartId, chatTitle }, { status: 201 });
   } catch (error) {
     console.error("Error creating message:", error);
     return NextResponse.json(

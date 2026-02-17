@@ -40,12 +40,15 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get chat with messages
+    // Get chat with messages and their associated charts
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
+          include: {
+            chart: true, // Include chart data for each message
+          },
         },
       },
     });

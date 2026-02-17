@@ -19,6 +19,10 @@ export const TableChart = ({
   sortable = true,
   pageSize = 10,
   showRowNumbers = true,
+  isFavorite = false,
+  isSaving = false,
+  onToggleFavorite,
+  chartInfo,
 }: TableChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -254,10 +258,14 @@ export const TableChart = ({
       <ChartActions
         onScreenshot={handleScreenshot}
         onTypographyChange={handleTypographyChange}
-        onSave={handleSave}
+        onSave={onToggleFavorite}
         showColors={false}
         currentTypography={typography}
         orientation="vertical"
+        showInfo={!!chartInfo}
+        chartInfo={chartInfo}
+        isFavorite={isFavorite}
+        isSaving={isSaving}
       />
     </div>
   );

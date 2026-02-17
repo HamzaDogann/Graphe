@@ -31,6 +31,10 @@ export const LineChart = ({
   onStylingChange,
   initialTypography,
   chartInfo,
+  isFavorite = false,
+  isSaving = false,
+  onToggleFavorite,
+  hideSaveButton = false,
 }: LineChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() => [
@@ -352,13 +356,16 @@ export const LineChart = ({
         onScreenshot={handleScreenshot}
         onColorChange={handleColorChange}
         onTypographyChange={handleTypographyChange}
-        onSave={handleSave}
+        onSave={onToggleFavorite}
         currentColors={colors}
         colorCount={1}
         currentTypography={typography}
         orientation="vertical"
         showInfo={!!chartInfo}
         chartInfo={chartInfo}
+        isFavorite={isFavorite}
+        isSaving={isSaving}
+        showSave={!hideSaveButton}
       />
     </div>
   );

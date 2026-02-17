@@ -43,6 +43,17 @@
         border-color: #5c85ff;
     }
 
+    &.favorited {
+        background: #5c85ff;
+        color: white;
+        border-color: #5c85ff;
+
+        &:hover {
+            background: #4a73ed;
+            border-color: #4a73ed;
+        }
+    }
+
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -52,6 +63,20 @@
             color: #6b7280;
             border-color: #e8ebf2;
         }
+    }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }
 

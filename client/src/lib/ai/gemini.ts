@@ -27,7 +27,6 @@ export const createGeminiProvider = (config: AIProviderConfig): AIProvider => {
         // Generate the prompt
         const prompt = generateChartPrompt(request.userPrompt, request.dataSchema);
         
-        // Call Gemini API with new SDK
         const response = await ai.models.generateContent({
           model: modelName,
           contents: prompt,

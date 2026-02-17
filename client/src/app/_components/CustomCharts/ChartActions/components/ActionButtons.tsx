@@ -7,6 +7,7 @@ import {
   Download,
   Maximize2,
   Info,
+  Loader2,
 } from "lucide-react";
 import styles from "../ChartActions.module.scss";
 
@@ -32,6 +33,9 @@ interface ActionButtonsProps {
   isInfoOpen: boolean;
 
   orientation: "horizontal" | "vertical";
+
+  isFavorite?: boolean;
+  isSaving?: boolean;
 
   refs: {
     paletteBtn: RefObject<HTMLButtonElement>;
@@ -59,6 +63,8 @@ export const ActionButtons = ({
   isTypographyOpen,
   isInfoOpen,
   orientation,
+  isFavorite = false,
+  isSaving = false,
   refs,
 }: ActionButtonsProps) => {
   return (
@@ -99,11 +105,16 @@ export const ActionButtons = ({
 
       {showSave && (
         <button
-          className={styles.actionBtn}
-          title="Save Chart"
+          className={`${styles.actionBtn} ${isFavorite ? styles.favorited : ""}`}
+          title={isFavorite ? "Saved" : "Save Chart"}
           onClick={onSave}
+          disabled={isSaving}
         >
-          <Bookmark size={18} />
+          {isSaving ? (
+            <Loader2 size={18} className={styles.spinner} />
+          ) : (
+            <Bookmark size={18} fill={isFavorite ? "currentColor" : "none"} />
+          )}
         </button>
       )}
 

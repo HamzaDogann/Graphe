@@ -16,6 +16,7 @@ export interface ChartActionsProps {
   onColorChange?: (colors: string[]) => void;
   onTypographyChange?: (settings: TypographySettings) => void;
   onSave?: () => void;
+  onToggleFavorite?: () => void;
   onDownload?: () => void;
   onFullscreen?: () => void;
   showScreenshot?: boolean;
@@ -30,6 +31,8 @@ export interface ChartActionsProps {
   colorCount?: number;
   currentTypography?: TypographySettings;
   chartInfo?: ChartInfo;
+  isFavorite?: boolean;
+  isSaving?: boolean;
 }
 
 export interface ActiveColorPickerState {

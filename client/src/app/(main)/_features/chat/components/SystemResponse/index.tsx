@@ -22,20 +22,28 @@ const GrapheLogo = () => (
 
 interface SystemResponseProps {
   messageId?: string;
+  chartId?: string;
   title?: string;
   description?: string;
   chartData?: ChartRenderData;
   storedChartData?: StoredChartData;
   error?: string;
+  isFavorite?: boolean;
+  isSaving?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 export const SystemResponse = ({
   messageId,
+  chartId,
   title = "Response",
   description,
   chartData,
   storedChartData,
   error,
+  isFavorite = false,
+  isSaving = false,
+  onToggleFavorite,
 }: SystemResponseProps) => {
   return (
     <motion.div
@@ -69,8 +77,12 @@ export const SystemResponse = ({
           <ChartRenderer
             renderData={chartData}
             messageId={messageId}
+            chartId={chartId}
             storedStyling={storedChartData?.styling}
             storedChartData={storedChartData}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
           />
         </div>
       )}

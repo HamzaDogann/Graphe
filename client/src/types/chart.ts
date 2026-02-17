@@ -83,6 +83,10 @@ export interface BaseChartProps {
     isUnderline: boolean;
   };
   chartInfo?: ChartInfo;
+  isFavorite?: boolean;
+  isSaving?: boolean;
+  onToggleFavorite?: () => void;
+  hideSaveButton?: boolean; // Hide save button in chart actions
 }
 
 // Pie Chart specific props
@@ -115,6 +119,10 @@ export interface TableChartProps {
   sortable?: boolean;
   pageSize?: number;
   showRowNumbers?: boolean;
+  isFavorite?: boolean;
+  isSaving?: boolean;
+  onToggleFavorite?: () => void;
+  chartInfo?: ChartInfo;
 }
 
 // Default color palette for charts
