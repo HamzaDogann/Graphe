@@ -25,6 +25,7 @@ export const TableChart = ({
   chartInfo,
 }: TableChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const tableBodyRef = useRef<HTMLDivElement>(null);
 
   // Typography state
   const [typography, setTypography] =
@@ -126,9 +127,30 @@ export const TableChart = ({
     setTypography(settings);
   }, []);
 
-  const handleSave = useCallback(() => {
-    console.log("Save table:", title);
-  }, [title]);
+  // Save handler - captures thumbnail when adding to favorites
+  const handleSave = useCallback(async () => {
+    if (!onToggleFavorite) return;
+
+    // If not already favorite, capture thumbnail first
+    if (!isFavorite && tableBodyRef.current) {
+      try {
+        const canvas = await html2canvas(tableBodyRef.current, {
+          backgroundColor: "#ffffff",
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        });
+        const thumbnail = canvas.toDataURL("image/png", 0.8);
+        onToggleFavorite(thumbnail);
+      } catch (error) {
+        console.error("Failed to capture thumbnail:", error);
+        onToggleFavorite();
+      }
+    } else {
+      onToggleFavorite();
+    }
+  }, [isFavorite, onToggleFavorite]);
 
   // Compute title styles based on typography
   const titleStyle = useMemo(
@@ -182,7 +204,7 @@ export const TableChart = ({
         )}
 
         {/* Table */}
-        <div className={styles.tableContainer}>
+        <div className={styles.tableContainer} ref={tableBodyRef}>
           <table className={styles.table} style={tableStyle}>
             <thead>
               <tr>
@@ -258,7 +280,7 @@ export const TableChart = ({
       <ChartActions
         onScreenshot={handleScreenshot}
         onTypographyChange={handleTypographyChange}
-        onSave={onToggleFavorite}
+        onSave={handleSave}
         showColors={false}
         currentTypography={typography}
         orientation="vertical"

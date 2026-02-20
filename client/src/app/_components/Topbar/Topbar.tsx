@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Info, Settings, Zap, Check, X } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useChatStore, selectActiveChat } from "@/store/useChatStore";
+import { useChartsStore } from "@/store/useChartsStore";
 import styles from "./Topbar.module.scss";
 
 export function Topbar() {
@@ -14,6 +15,16 @@ export function Topbar() {
   // Chat store
   const activeChat = useChatStore(selectActiveChat);
   const updateChatTitle = useChatStore((state) => state.updateChatTitle);
+
+  // Charts store - get current chart from cache
+  const chartsDetailCache = useChartsStore((state) => state.chartsDetailCache);
+
+  // Extract chartId from pathname if on chart detail page
+  const chartIdMatch = pathname?.match(/\/dashboard\/charts\/([^/]+)/);
+  const currentChartId = chartIdMatch?.[1];
+  const currentChart = currentChartId
+    ? chartsDetailCache[currentChartId]
+    : null;
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -81,6 +92,16 @@ export function Topbar() {
 
   // Determine the title based on the current route
   const getTitle = (): string => {
+    // Chart detail page
+    if (currentChartId && pathname?.startsWith("/dashboard/charts/")) {
+      return currentChart?.title || "Chart";
+    }
+
+    // Charts list page
+    if (pathname === "/dashboard/charts") {
+      return "Charts";
+    }
+
     // Canvas detail page
     if (pathname?.startsWith("/dashboard/canvases/canvas-")) {
       return activeCanvas?.name || "Canvas";

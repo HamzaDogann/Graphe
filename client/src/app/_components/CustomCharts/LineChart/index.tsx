@@ -37,6 +37,7 @@ export const LineChart = ({
   hideSaveButton = false,
 }: LineChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const chartBodyRef = useRef<HTMLDivElement>(null);
   const [colors, setColors] = useState<string[]>(() => [
     colorScheme[0] || COLOR_PALETTES.default[0],
   ]);
@@ -292,10 +293,36 @@ export const LineChart = ({
     [onStylingChange],
   );
 
-  // Save handler
-  const handleSave = useCallback(() => {
-    console.log("Save chart:", title);
-  }, [title]);
+  // Save handler - captures thumbnail when adding to favorites
+  const handleSave = useCallback(async () => {
+    if (!onToggleFavorite) return;
+
+    // If not already favorite, capture thumbnail first
+    if (!isFavorite && chartBodyRef.current) {
+      try {
+        // Target the chart canvas div (excludes legends and labels)
+        const chartCanvas = chartBodyRef.current.querySelector(
+          ".apexcharts-canvas",
+        ) as HTMLElement;
+        const targetElement = chartCanvas || chartBodyRef.current;
+
+        const canvas = await html2canvas(targetElement, {
+          backgroundColor: "#ffffff",
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        });
+        const thumbnail = canvas.toDataURL("image/png", 0.8);
+        onToggleFavorite(thumbnail);
+      } catch (error) {
+        console.error("Failed to capture thumbnail:", error);
+        onToggleFavorite();
+      }
+    } else {
+      onToggleFavorite();
+    }
+  }, [isFavorite, onToggleFavorite]);
 
   // Compute title styles based on typography
   const titleStyle = useMemo(
@@ -340,7 +367,7 @@ export const LineChart = ({
         )}
 
         {/* ApexCharts Line/Area */}
-        <div className={styles.chartBody}>
+        <div className={styles.chartBody} ref={chartBodyRef}>
           <Chart
             options={options}
             series={series}
@@ -356,7 +383,7 @@ export const LineChart = ({
         onScreenshot={handleScreenshot}
         onColorChange={handleColorChange}
         onTypographyChange={handleTypographyChange}
-        onSave={onToggleFavorite}
+        onSave={handleSave}
         currentColors={colors}
         colorCount={1}
         currentTypography={typography}

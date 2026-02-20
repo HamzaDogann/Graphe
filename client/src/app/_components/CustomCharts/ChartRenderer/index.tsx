@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import html2canvas from "html2canvas";
 import { ChartType } from "@/constants/chartTypes";
 import {
   ChartRenderData,
@@ -20,6 +21,8 @@ import styles from "./ChartRenderer.module.scss";
 
 // Debounce delay for saving styling (2 seconds)
 const DEBOUNCE_DELAY = 2000;
+// Debounce delay for thumbnail capture (after styling settles)
+const THUMBNAIL_DEBOUNCE_DELAY = 3000;
 
 interface ChartRendererProps {
   renderData: ChartRenderData;
@@ -32,7 +35,7 @@ interface ChartRendererProps {
   colorScheme?: string[];
   isFavorite?: boolean;
   isSaving?: boolean;
-  onToggleFavorite?: () => void;
+  onToggleFavorite?: (thumbnail?: string) => void;
   onStylingChange?: (styling: Partial<ChartStyling>) => void; // External callback for styling updates
   onDataPointClick?: (dataPoint: ChartDataPoint) => void;
   hideSaveButton?: boolean; // Hide save button in chart actions (for charts detail page)
@@ -61,30 +64,49 @@ export const ChartRenderer = ({
   const updateChartStyling = useChartsStore(
     (state) => state.updateChartStyling,
   );
+  const updateChartInCache = useChartsStore(
+    (state) => state.updateChartInCache,
+  );
+
+  // Ref for the chart container (for thumbnail capture)
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const thumbnailDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Subscribe to cached chart styling for reactive updates
   // When charts page updates styling, this will trigger re-render with latest values
-  const cachedChartStyling = useChartsStore(
-    (state) => chartId ? state.chartsDetailCache[chartId]?.styling : undefined
+  const cachedChartStyling = useChartsStore((state) =>
+    chartId ? state.chartsDetailCache[chartId]?.styling : undefined,
   );
 
   // Determine effective initial styling (cached > stored > colorScheme > default)
-  const effectiveInitialColors = cachedChartStyling?.colors || storedStyling?.colors || colorScheme || DEFAULT_CHART_COLORS;
-  const effectiveInitialTypography = cachedChartStyling?.typography || storedStyling?.typography;
+  const effectiveInitialColors =
+    cachedChartStyling?.colors ||
+    storedStyling?.colors ||
+    colorScheme ||
+    DEFAULT_CHART_COLORS;
+  const effectiveInitialTypography =
+    cachedChartStyling?.typography || storedStyling?.typography;
 
   // Local styling state - immediately reflects user changes
-  const [localColors, setLocalColors] = useState<string[]>(effectiveInitialColors);
+  const [localColors, setLocalColors] = useState<string[]>(
+    effectiveInitialColors,
+  );
   const [localTypography, setLocalTypography] = useState<
     ChartStyling["typography"] | undefined
   >(effectiveInitialTypography);
 
   // Track previous cached styling to detect external changes
-  const prevCachedStylingRef = useRef<string>(JSON.stringify(cachedChartStyling));
+  const prevCachedStylingRef = useRef<string>(
+    JSON.stringify(cachedChartStyling),
+  );
 
   // Sync local state when cachedChartStyling changes from external source (charts page)
   useEffect(() => {
     const currentCachedKey = JSON.stringify(cachedChartStyling);
-    if (cachedChartStyling && currentCachedKey !== prevCachedStylingRef.current) {
+    if (
+      cachedChartStyling &&
+      currentCachedKey !== prevCachedStylingRef.current
+    ) {
       prevCachedStylingRef.current = currentCachedKey;
       if (cachedChartStyling.colors) {
         setLocalColors(cachedChartStyling.colors);
@@ -137,6 +159,59 @@ export const ChartRenderer = ({
     }, DEBOUNCE_DELAY);
   }, [messageId, chartId, updateMessageStyling, updateChartStyling]);
 
+  // Debounced thumbnail capture (after styling changes settle)
+  const debouncedThumbnailCapture = useCallback(() => {
+    // Only capture if chart is favorited and we have chartId
+    if (!isFavorite || !chartId || !chartContainerRef.current) return;
+
+    if (thumbnailDebounceRef.current) {
+      clearTimeout(thumbnailDebounceRef.current);
+    }
+
+    thumbnailDebounceRef.current = setTimeout(async () => {
+      try {
+        const chartCanvas = chartContainerRef.current?.querySelector(
+          ".apexcharts-canvas",
+        ) as HTMLElement;
+        const targetElement = chartCanvas || chartContainerRef.current;
+        if (!targetElement) return;
+
+        const canvas = await html2canvas(targetElement, {
+          backgroundColor: "#ffffff",
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        });
+        const thumbnail = canvas.toDataURL("image/png", 0.8);
+
+        // Update local cache immediately
+        updateChartInCache(chartId, { thumbnail });
+
+        // Fire-and-forget API call
+        fetch(`/api/charts/${chartId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ thumbnail }),
+        }).catch((err) => console.error("Failed to update thumbnail:", err));
+      } catch (error) {
+        console.error(
+          "Failed to capture thumbnail after styling change:",
+          error,
+        );
+      }
+    }, THUMBNAIL_DEBOUNCE_DELAY);
+  }, [isFavorite, chartId, updateChartInCache]);
+
+  // Cleanup thumbnail debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (thumbnailDebounceRef.current) {
+        clearTimeout(thumbnailDebounceRef.current);
+      }
+    };
+  }, []);
+
   // Handle styling changes from charts
   const handleStylingChange = useCallback(
     (styling: ChartStylingUpdate) => {
@@ -157,8 +232,11 @@ export const ChartRenderer = ({
 
       // Schedule debounced save to DB
       debouncedSave();
+
+      // Schedule debounced thumbnail capture (if favorited)
+      debouncedThumbnailCapture();
     },
-    [debouncedSave, externalOnStylingChange],
+    [debouncedSave, externalOnStylingChange, debouncedThumbnailCapture],
   );
 
   // Effective color scheme for rendering
@@ -303,7 +381,11 @@ export const ChartRenderer = ({
     onToggleFavorite,
   ]);
 
-  return <div className={styles.chartRenderer}>{chartElement}</div>;
+  return (
+    <div ref={chartContainerRef} className={styles.chartRenderer}>
+      {chartElement}
+    </div>
+  );
 };
 
 // Helper function to render a chart by type (for simpler use cases)

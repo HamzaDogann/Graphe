@@ -47,8 +47,8 @@ export const MessageList = ({ messages }: MessageListProps) => {
 
   // Create stable callback for favorite toggle
   const handleToggleFavorite = useCallback(
-    (messageId: string) => {
-      toggleChartFavorite(messageId);
+    (messageId: string, thumbnail?: string) => {
+      toggleChartFavorite(messageId, thumbnail);
     },
     [toggleChartFavorite],
   );
@@ -112,7 +112,9 @@ export const MessageList = ({ messages }: MessageListProps) => {
                 chartId={message.chartId}
                 isFavorite={message.isFavorite}
                 isSaving={message.isSaving}
-                onToggleFavorite={() => handleToggleFavorite(message.id)}
+                onToggleFavorite={(thumbnail) =>
+                  handleToggleFavorite(message.id, thumbnail)
+                }
               />
             );
           }

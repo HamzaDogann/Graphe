@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { BarChart3, Star, Loader2 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
 import { ChartCard } from "./_components";
 import { useChartsStore } from "@/store/useChartsStore";
 import styles from "./charts.module.scss";
@@ -53,7 +53,7 @@ export default function ChartsPage() {
     <div className={styles.chartsPage}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <Star size={28} className={styles.headerIcon} />
+          <BarChart3 size={28} className={styles.headerIcon} />
           <div>
             <h1 className={styles.title}>Saved Charts</h1>
             <p className={styles.subtitle}>
@@ -67,7 +67,7 @@ export default function ChartsPage() {
       {chartsList.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
-            <BarChart3 size={48} />
+            <BarChart3 size={60} />
           </div>
           <h2>No saved charts yet</h2>
           <p>

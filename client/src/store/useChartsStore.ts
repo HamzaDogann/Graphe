@@ -55,7 +55,9 @@ interface ChartsActions {
   fetchChartDetail: (chartId: string) => Promise<ChartDetail | null>;
 
   // Chart operations
-  toggleFavorite: (chartId: string) => Promise<boolean>;
+  toggleFavorite: (chartId: string) => void;
+  addToFavorites: (chartId: string, chartData: ChartDetail) => void;
+  removeFromFavorites: (chartId: string) => void;
   deleteChart: (chartId: string) => Promise<boolean>;
   updateChartStyling: (chartId: string, styling: Partial<ChartStyling>) => void;
 
@@ -99,7 +101,8 @@ export const useChartsStore = create<ChartsStore>()(
         set({ isLoadingList: true, error: null });
 
         try {
-          const response = await fetch("/api/charts");
+          // Only fetch favorite charts
+          const response = await fetch("/api/charts?favorites=true");
           if (!response.ok) {
             throw new Error("Failed to fetch charts");
           }
@@ -161,59 +164,123 @@ export const useChartsStore = create<ChartsStore>()(
 
       // ===== CHART OPERATIONS =====
 
-      toggleFavorite: async (chartId: string): Promise<boolean> => {
+      toggleFavorite: (chartId: string): void => {
         const { chartsList, chartsDetailCache } = get();
-        const chart = chartsDetailCache[chartId] || chartsList.find((c) => c.id === chartId);
+        const cachedChart = chartsDetailCache[chartId];
+        const listChart = chartsList.find((c) => c.id === chartId);
+        const chart = cachedChart || listChart;
 
-        if (!chart) return false;
+        if (!chart) return;
 
         const newFavorite = !chart.isFavorite;
 
-        // Optimistic update - list
-        set((state) => ({
-          chartsList: state.chartsList.map((c) =>
-            c.id === chartId ? { ...c, isFavorite: newFavorite } : c
-          ),
-        }));
-
-        // Optimistic update - detail cache
-        if (chartsDetailCache[chartId]) {
-          set((state) => ({
-            chartsDetailCache: {
-              ...state.chartsDetailCache,
-              [chartId]: { ...state.chartsDetailCache[chartId], isFavorite: newFavorite },
-            },
-          }));
-        }
-
-        try {
-          const response = await fetch(`/api/charts/${chartId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isFavorite: newFavorite }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to toggle favorite");
+        // Optimistic update - immediately add/remove from list
+        set((state) => {
+          let newChartsList: typeof state.chartsList;
+          
+          if (newFavorite) {
+            // Adding to favorites - add to list if not exists
+            if (!state.chartsList.some((c) => c.id === chartId)) {
+              const chartSummary = cachedChart ? {
+                id: cachedChart.id,
+                type: cachedChart.type,
+                title: cachedChart.title,
+                description: cachedChart.description,
+                datasetName: cachedChart.datasetName,
+                datasetExtension: cachedChart.datasetExtension,
+                thumbnail: cachedChart.thumbnail,
+                isFavorite: true,
+                createdAt: cachedChart.createdAt,
+                updatedAt: cachedChart.updatedAt,
+              } : { ...listChart!, isFavorite: true };
+              newChartsList = [chartSummary, ...state.chartsList];
+            } else {
+              newChartsList = state.chartsList.map((c) =>
+                c.id === chartId ? { ...c, isFavorite: true } : c
+              );
+            }
+          } else {
+            // Removing from favorites - remove from list
+            newChartsList = state.chartsList.filter((c) => c.id !== chartId);
           }
 
-          return true;
-        } catch (error) {
-          // Rollback on error
-          set((state) => ({
-            chartsList: state.chartsList.map((c) =>
-              c.id === chartId ? { ...c, isFavorite: !newFavorite } : c
-            ),
-            chartsDetailCache: state.chartsDetailCache[chartId]
-              ? {
-                  ...state.chartsDetailCache,
-                  [chartId]: { ...state.chartsDetailCache[chartId], isFavorite: !newFavorite },
-                }
-              : state.chartsDetailCache,
-            error: "Failed to toggle favorite",
-          }));
-          return false;
-        }
+          // Update detail cache
+          const newDetailCache = cachedChart
+            ? {
+                ...state.chartsDetailCache,
+                [chartId]: { ...cachedChart, isFavorite: newFavorite },
+              }
+            : state.chartsDetailCache;
+
+          return {
+            chartsList: newChartsList,
+            chartsDetailCache: newDetailCache,
+          };
+        });
+
+        // Fire-and-forget API call - no await, no response handling needed
+        fetch(`/api/charts/${chartId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isFavorite: newFavorite }),
+        }).catch((error) => {
+          console.error("Failed to sync favorite to DB:", error);
+          // Note: We don't rollback here since optimistic UI is already applied
+          // and user would be confused by a sudden revert
+        });
+      },
+
+      // Add chart to favorites list (optimistic, used by chat store)
+      addToFavorites: (chartId: string, chartData: ChartDetail) => {
+        set((state) => {
+          // Add to detail cache
+          const newDetailCache = {
+            ...state.chartsDetailCache,
+            [chartId]: { ...chartData, isFavorite: true },
+          };
+
+          // Add to chartsList if not exists
+          if (state.chartsList.some((c) => c.id === chartId)) {
+            return {
+              chartsDetailCache: newDetailCache,
+              chartsList: state.chartsList.map((c) =>
+                c.id === chartId ? { ...c, isFavorite: true } : c
+              ),
+            };
+          }
+
+          return {
+            chartsDetailCache: newDetailCache,
+            chartsList: [
+              {
+                id: chartData.id,
+                type: chartData.type,
+                title: chartData.title,
+                description: chartData.description,
+                datasetName: chartData.datasetName,
+                datasetExtension: chartData.datasetExtension,
+                thumbnail: chartData.thumbnail,
+                isFavorite: true,
+                createdAt: chartData.createdAt,
+                updatedAt: chartData.updatedAt,
+              },
+              ...state.chartsList,
+            ],
+          };
+        });
+      },
+
+      // Remove chart from favorites list (optimistic, used by chat store)
+      removeFromFavorites: (chartId: string) => {
+        set((state) => ({
+          chartsList: state.chartsList.filter((c) => c.id !== chartId),
+          chartsDetailCache: state.chartsDetailCache[chartId]
+            ? {
+                ...state.chartsDetailCache,
+                [chartId]: { ...state.chartsDetailCache[chartId], isFavorite: false },
+              }
+            : state.chartsDetailCache,
+        }));
       },
 
       deleteChart: async (chartId: string): Promise<boolean> => {
@@ -284,30 +351,38 @@ export const useChartsStore = create<ChartsStore>()(
       // ===== CACHE MANAGEMENT =====
 
       addChartToCache: (chart: ChartDetail) => {
-        set((state) => ({
-          chartsDetailCache: {
+        set((state) => {
+          // Always add to detail cache
+          const newDetailCache = {
             ...state.chartsDetailCache,
             [chart.id]: chart,
-          },
-          // Also add to list if not exists
-          chartsList: state.chartsList.some((c) => c.id === chart.id)
-            ? state.chartsList
-            : [
-                {
-                  id: chart.id,
-                  type: chart.type,
-                  title: chart.title,
-                  description: chart.description,
-                  datasetName: chart.datasetName,
-                  datasetExtension: chart.datasetExtension,
-                  thumbnail: chart.thumbnail,
-                  isFavorite: chart.isFavorite,
-                  createdAt: chart.createdAt,
-                  updatedAt: chart.updatedAt,
-                },
-                ...state.chartsList,
-              ],
-        }));
+          };
+
+          // Only add to chartsList if isFavorite is true and not already exists
+          let newChartsList = state.chartsList;
+          if (chart.isFavorite && !state.chartsList.some((c) => c.id === chart.id)) {
+            newChartsList = [
+              {
+                id: chart.id,
+                type: chart.type,
+                title: chart.title,
+                description: chart.description,
+                datasetName: chart.datasetName,
+                datasetExtension: chart.datasetExtension,
+                thumbnail: chart.thumbnail,
+                isFavorite: chart.isFavorite,
+                createdAt: chart.createdAt,
+                updatedAt: chart.updatedAt,
+              },
+              ...state.chartsList,
+            ];
+          }
+
+          return {
+            chartsDetailCache: newDetailCache,
+            chartsList: newChartsList,
+          };
+        });
       },
 
       updateChartInCache: (chartId: string, updates: Partial<ChartDetail>) => {

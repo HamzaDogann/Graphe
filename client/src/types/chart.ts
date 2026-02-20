@@ -85,7 +85,7 @@ export interface BaseChartProps {
   chartInfo?: ChartInfo;
   isFavorite?: boolean;
   isSaving?: boolean;
-  onToggleFavorite?: () => void;
+  onToggleFavorite?: (thumbnail?: string) => void;
   hideSaveButton?: boolean; // Hide save button in chart actions
 }
 
@@ -121,7 +121,7 @@ export interface TableChartProps {
   showRowNumbers?: boolean;
   isFavorite?: boolean;
   isSaving?: boolean;
-  onToggleFavorite?: () => void;
+  onToggleFavorite?: (thumbnail?: string) => void;
   chartInfo?: ChartInfo;
 }
 

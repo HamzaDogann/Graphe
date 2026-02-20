@@ -53,8 +53,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <SidebarNavItem
               icon={<BarChart3 size={20} />}
               label="Charts"
-              href="/charts"
+              href="/dashboard/charts"
               collapsed={true}
+              variant="charts"
             />
             <SidebarNavItem
               icon={<FileChartPie size={20} />}
@@ -89,8 +90,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <SidebarNavItem
               icon={<BarChart3 size={20} />}
               label="Charts"
-              href="/charts"
+              href="/dashboard/charts"
               collapsed={false}
+              variant="charts"
             />
             <SidebarNavItem
               icon={<FileChartPie size={20} />}

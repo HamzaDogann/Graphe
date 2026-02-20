@@ -30,7 +30,7 @@ interface SystemResponseProps {
   error?: string;
   isFavorite?: boolean;
   isSaving?: boolean;
-  onToggleFavorite?: () => void;
+  onToggleFavorite?: (thumbnail?: string) => void;
 }
 
 export const SystemResponse = ({

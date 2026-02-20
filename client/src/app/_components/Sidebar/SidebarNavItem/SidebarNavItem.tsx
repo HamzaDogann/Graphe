@@ -10,7 +10,7 @@ interface SidebarNavItemProps {
   label: string;
   href: string;
   collapsed: boolean;
-  variant?: "default" | "canvases";
+  variant?: "default" | "canvases" | "charts";
 }
 
 export function SidebarNavItem({
@@ -23,11 +23,21 @@ export function SidebarNavItem({
   const pathname = usePathname();
 
   // For canvases variant, check if pathname includes "canvases"
+  // For charts variant, check if pathname includes "charts"
   // For others, exact match
   const isActive =
-    variant === "canvases" ? pathname?.includes("canvases") : pathname === href;
+    variant === "canvases"
+      ? pathname?.includes("canvases")
+      : variant === "charts"
+        ? pathname?.includes("charts")
+        : pathname === href;
 
-  const variantClass = variant === "canvases" ? styles.canvases : "";
+  const variantClass =
+    variant === "canvases"
+      ? styles.canvases
+      : variant === "charts"
+        ? styles.charts
+        : "";
 
   return (
     <Link

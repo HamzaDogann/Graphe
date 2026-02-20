@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
 import styles from "../ChartActions.module.scss";
@@ -19,6 +19,8 @@ interface PaletteMenuProps {
     element: HTMLElement,
   ) => void;
   activeColorIndex: number | null;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
+  onCloseColorPicker?: () => void;
 }
 
 export const PaletteMenu = ({
@@ -29,16 +31,30 @@ export const PaletteMenu = ({
   customColors,
   onCustomColorClick,
   activeColorIndex,
+  buttonRef,
+  onCloseColorPicker,
 }: PaletteMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const position = useTooltipPosition(anchorRect, 300, 380);
 
   // Close only if not clicking inside or color picker isn't active
-  useClickOutside(menuRef, () => {
-    if (activeColorIndex === null) {
-      onClose();
+  // Ignore clicks on the toggle button to prevent double-fire
+  useClickOutside(
+    menuRef,
+    () => {
+      if (activeColorIndex === null) {
+        onClose();
+      }
+    },
+    buttonRef ? [buttonRef] : [],
+  );
+
+  // Handle click on menu content to close color picker (but not on swatches)
+  const handleMenuClick = () => {
+    if (activeColorIndex !== null && onCloseColorPicker) {
+      onCloseColorPicker();
     }
-  });
+  };
 
   if (!anchorRect) return null;
 
@@ -48,6 +64,7 @@ export const PaletteMenu = ({
       className={styles.paletteMenu}
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.stopPropagation()}
+      onClick={handleMenuClick}
     >
       <div className={styles.menuHeader}>
         <span>Color Palette</span>

@@ -103,7 +103,9 @@ export const ChartCard = ({ chart, onToggleFavorite }: ChartCardProps) => {
           <button
             className={`${styles.favoriteBtn} ${chart.isFavorite ? styles.favorited : ""}`}
             onClick={handleFavoriteClick}
-            title={chart.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={
+              chart.isFavorite ? "Remove from favorites" : "Add to favorites"
+            }
           >
             <Star size={14} fill={chart.isFavorite ? "currentColor" : "none"} />
           </button>
@@ -118,6 +120,9 @@ export const ChartCard = ({ chart, onToggleFavorite }: ChartCardProps) => {
           <span>{chart.type}</span>
         </div>
       </div>
+
+      {/* Divider */}
+      <div className={styles.divider} />
 
       {/* Card Content */}
       <div className={styles.cardContent}>

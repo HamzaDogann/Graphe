@@ -158,6 +158,8 @@ export const ChartActions = memo((props: ChartActionsProps) => {
             setActiveColorPicker({ index, rect, element })
           }
           activeColorIndex={activeColorPicker?.index ?? null}
+          buttonRef={refs.paletteButtonRef}
+          onCloseColorPicker={() => setActiveColorPicker(null)}
         />
       )}
 
@@ -174,6 +176,8 @@ export const ChartActions = memo((props: ChartActionsProps) => {
               setActiveTypoColorPicker({ rect, element })
             }
             isColorPickerOpen={!!activeTypoColorPicker}
+            buttonRef={refs.typographyButtonRef}
+            onCloseColorPicker={() => setActiveTypoColorPicker(null)}
           />
         )}
 

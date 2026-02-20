@@ -1,24 +1,33 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Calendar,
-  Database,
-  Bookmark,
-  Loader2,
-  Trash2,
-} from "lucide-react";
+import html2canvas from "html2canvas";
+import Image from "next/image";
+import { ArrowLeft, Bookmark, Loader2, Trash2 } from "lucide-react";
 import { ChartRenderer } from "@/app/_components";
 import {
   storedToRenderData,
   StoredChartData,
   ChartStyling,
 } from "@/types/chat";
-import { useChartsStore, ChartDetail } from "@/store/useChartsStore";
+import { useChartsStore } from "@/store/useChartsStore";
 import styles from "./chartDetail.module.scss";
+
+// Extension logo paths
+const EXTENSION_LOGOS: Record<string, string> = {
+  xlsx: "/extensionsLogo/ExcelLogo.webp",
+  xls: "/extensionsLogo/ExcelLogo.webp",
+  csv: "/extensionsLogo/CsvLogo.png",
+  json: "/extensionsLogo/JsonLogo.png",
+};
+
+// Helper to get logo path by extension
+const getExtensionLogo = (extension: string): string => {
+  const ext = extension.toLowerCase().replace(".", "");
+  return EXTENSION_LOGOS[ext] || "/extensionsLogo/CsvLogo.png";
+};
 
 interface PageProps {
   params: Promise<{ chartId: string }>;
@@ -28,6 +37,8 @@ export default function ChartDetailPage({ params }: PageProps) {
   const { chartId } = use(params);
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const hasStylingChangedRef = useRef(false);
 
   const {
     chartsDetailCache,
@@ -37,6 +48,7 @@ export default function ChartDetailPage({ params }: PageProps) {
     toggleFavorite,
     deleteChart,
     updateChartStyling,
+    updateChartInCache,
   } = useChartsStore();
 
   // Get chart from cache
@@ -49,9 +61,44 @@ export default function ChartDetailPage({ params }: PageProps) {
     }
   }, [chartId, chart, fetchChartDetail]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(async () => {
+    // If styling changed and chart is favorite, capture and update thumbnail
+    if (
+      hasStylingChangedRef.current &&
+      chart?.isFavorite &&
+      chartContainerRef.current
+    ) {
+      try {
+        const chartCanvas = chartContainerRef.current.querySelector(
+          ".apexcharts-canvas",
+        ) as HTMLElement;
+        const targetElement = chartCanvas || chartContainerRef.current;
+
+        const canvas = await html2canvas(targetElement, {
+          backgroundColor: "#ffffff",
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        });
+        const thumbnail = canvas.toDataURL("image/png", 0.8);
+
+        // Update local state immediately (optimistic)
+        updateChartInCache(chartId, { thumbnail });
+
+        // Fire-and-forget API call to update thumbnail
+        fetch(`/api/charts/${chartId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ thumbnail }),
+        }).catch((err) => console.error("Failed to update thumbnail:", err));
+      } catch (error) {
+        console.error("Failed to capture thumbnail on exit:", error);
+      }
+    }
+
     router.push("/dashboard/charts");
-  };
+  }, [chart?.isFavorite, chartId, router, updateChartInCache]);
 
   const handleToggleFavorite = () => {
     // Optimistic UI - no await needed
@@ -75,6 +122,7 @@ export default function ChartDetailPage({ params }: PageProps) {
   // Handle styling changes from ChartRenderer
   const handleStylingChange = useCallback(
     (styling: Partial<ChartStyling>) => {
+      hasStylingChangedRef.current = true;
       updateChartStyling(chartId, styling);
     },
     [chartId, updateChartStyling],
@@ -99,6 +147,7 @@ export default function ChartDetailPage({ params }: PageProps) {
       type: chart.type as "pie" | "bar" | "line" | "table",
       title: chart.title,
       description: chart.description || undefined,
+      createdAt: chart.createdAt,
       datasetInfo: chart.datasetName
         ? {
             name: chart.datasetName,
@@ -198,21 +247,42 @@ export default function ChartDetailPage({ params }: PageProps) {
 
         <div className={styles.meta}>
           {chart.datasetName && (
-            <span className={styles.metaItem}>
-              <Database size={14} />
-              {chart.datasetName}
-              {chart.datasetExtension && `.${chart.datasetExtension}`}
-            </span>
+            <div className={styles.metaItem}>
+              <div className={styles.metaIconWrapper}>
+                <Image
+                  src={getExtensionLogo(chart.datasetExtension || "csv")}
+                  alt="Dataset type"
+                  width={24}
+                  height={24}
+                  className={styles.metaIcon}
+                />
+              </div>
+              <span className={styles.metaText}>
+                {chart.datasetName}
+                {chart.datasetExtension && `.${chart.datasetExtension}`}
+              </span>
+            </div>
           )}
-          <span className={styles.metaItem}>
-            <Calendar size={14} />
-            {formatDate(chart.createdAt)}
-          </span>
+          <div className={styles.metaItem}>
+            <div className={styles.metaIconWrapper}>
+              <Image
+                src="/others/ChartGeneratedDate.webp"
+                alt="Created date"
+                width={24}
+                height={24}
+                className={styles.metaIcon}
+              />
+            </div>
+            <span className={styles.metaText}>
+              {formatDate(chart.createdAt)}
+            </span>
+          </div>
         </div>
       </motion.div>
 
       {/* Chart */}
       <motion.div
+        ref={chartContainerRef}
         className={styles.chartSection}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

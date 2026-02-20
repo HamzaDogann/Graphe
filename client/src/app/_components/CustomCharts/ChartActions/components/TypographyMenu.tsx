@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronDown, Check, Bold, Italic, Underline } from "lucide-react";
 import styles from "../ChartActions.module.scss";
@@ -14,6 +14,8 @@ interface TypographyMenuProps {
   onUpdate: (key: keyof TypographySettings, value: any) => void;
   onColorClick: (rect: DOMRect, element: HTMLElement) => void;
   isColorPickerOpen: boolean;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
+  onCloseColorPicker?: () => void;
 }
 
 export const TypographyMenu = ({
@@ -23,17 +25,31 @@ export const TypographyMenu = ({
   onUpdate,
   onColorClick,
   isColorPickerOpen,
+  buttonRef,
+  onCloseColorPicker,
 }: TypographyMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const position = useTooltipPosition(anchorRect, 280, 320);
   const [showFontDropdown, setShowFontDropdown] = useState(false);
 
-  useClickOutside(menuRef, () => {
-    if (!isColorPickerOpen) {
-      onClose();
-      setShowFontDropdown(false);
+  // Ignore clicks on the toggle button to prevent double-fire
+  useClickOutside(
+    menuRef,
+    () => {
+      if (!isColorPickerOpen) {
+        onClose();
+        setShowFontDropdown(false);
+      }
+    },
+    buttonRef ? [buttonRef] : [],
+  );
+
+  // Handle click on menu content to close color picker (but not on color swatch)
+  const handleMenuClick = () => {
+    if (isColorPickerOpen && onCloseColorPicker) {
+      onCloseColorPicker();
     }
-  });
+  };
 
   const currentFontLabel = useMemo(() => {
     return (
@@ -50,6 +66,7 @@ export const TypographyMenu = ({
       className={styles.typographyMenu}
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.stopPropagation()}
+      onClick={handleMenuClick}
     >
       <div className={styles.menuHeader}>
         <span>Typography</span>

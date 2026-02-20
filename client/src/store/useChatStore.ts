@@ -78,7 +78,7 @@ interface ChatActions {
   deleteMessage: (messageId: string) => Promise<boolean>;
 
   // Chart favorites
-  toggleChartFavorite: (messageId: string) => Promise<boolean>;
+  toggleChartFavorite: (messageId: string, thumbnail?: string) => void;
 
   // Utility
   clearError: () => void;
@@ -786,71 +786,71 @@ export const useChatStore = create<ChatStore>()(
 
       // ===== CHART FAVORITES =====
 
-      toggleChartFavorite: async (messageId: string): Promise<boolean> => {
+      toggleChartFavorite: (messageId: string, thumbnail?: string): void => {
         const { messages } = get();
 
         // Find the message
         const message = messages.find((m) => m.id === messageId);
         if (!message || message.role !== "assistant" || !message.chartId) {
           console.warn("Cannot toggle favorite: message has no chartId");
-          return false;
+          return;
         }
 
         const currentlyFavorited = message.isFavorite || false;
+        const newFavorite = !currentlyFavorited;
         const chartId = message.chartId!;
 
-        // Optimistic update - both message and chartsStore
+        // Optimistic update - message state
         set((state) => ({
           messages: state.messages.map((m) =>
             m.id === messageId && m.role === "assistant"
-              ? { ...m, isFavorite: !currentlyFavorited, isSaving: true }
+              ? { ...m, isFavorite: newFavorite }
               : m
           ),
         }));
-        useChartsStore.getState().updateChartInCache(chartId, {
-          isFavorite: !currentlyFavorited,
-        });
 
-        try {
-          // Chart already exists in DB, just toggle isFavorite
-          const response = await fetch(`/api/charts/${chartId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isFavorite: !currentlyFavorited }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to toggle favorite");
+        // Optimistic update - chartsStore (add/remove from list)
+        const chartsStore = useChartsStore.getState();
+        if (newFavorite) {
+          // Adding to favorites - need to build ChartDetail from message data
+          const chartData = message.chartData;
+          if (chartData) {
+            const chartDetail: ChartDetail = {
+              id: chartId,
+              type: chartData.type,
+              title: chartData.title,
+              description: chartData.description || null,
+              datasetName: chartData.datasetInfo?.name || null,
+              datasetExtension: chartData.datasetInfo?.extension || null,
+              thumbnail: thumbnail || null,
+              isFavorite: true,
+              createdAt: chartData.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              data: chartData.data,
+              config: chartData.config,
+              styling: chartData.styling,
+              tableData: chartData.tableData || null,
+            };
+            chartsStore.addToFavorites(chartId, chartDetail);
           }
-
-          // Update message (remove isSaving flag)
-          set((state) => ({
-            messages: state.messages.map((m) =>
-              m.id === messageId && m.role === "assistant"
-                ? { ...m, isSaving: false }
-                : m
-            ),
-          }));
-
-          return true;
-        } catch (error) {
-          // Rollback on error - both message and chartsStore
-          set((state) => ({
-            messages: state.messages.map((m) =>
-              m.id === messageId && m.role === "assistant"
-                ? { ...m, isFavorite: currentlyFavorited, isSaving: false }
-                : m
-            ),
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to toggle favorite",
-          }));
-          useChartsStore.getState().updateChartInCache(chartId, {
-            isFavorite: currentlyFavorited,
-          });
-          return false;
+        } else {
+          // Removing from favorites
+          chartsStore.removeFromFavorites(chartId);
         }
+
+        // Fire-and-forget API call - include thumbnail if provided
+        const patchData: { isFavorite: boolean; thumbnail?: string } = { isFavorite: newFavorite };
+        if (thumbnail && newFavorite) {
+          patchData.thumbnail = thumbnail;
+        }
+        
+        fetch(`/api/charts/${chartId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patchData),
+        }).catch((error) => {
+          console.error("Failed to sync favorite to DB:", error);
+        });
       },
 
       // ===== UTILITY =====

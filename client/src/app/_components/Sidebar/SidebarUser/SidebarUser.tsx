@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, LogOut, Sparkles } from "lucide-react";
+import { Settings, LogOut, Zap } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,7 +85,7 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
             style={{ transformOrigin: transformOrigins.bottomLeft }}
           >
             <button className={styles.menuItem}>
-              <Sparkles size={18} />
+              <Zap size={18} />
               <span>Upgrade to Pro</span>
             </button>
             <button className={styles.menuItem} onClick={handleSettingsClick}>
