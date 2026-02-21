@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Sidebar } from "@/app/_components/Sidebar";
 import { Topbar } from "@/app/_components/Topbar";
+import { useSidebarStore } from "@/store/useSidebarStore";
 import styles from "@/app/dashboard.module.scss";
 
 interface DashboardLayoutProps {
@@ -10,19 +10,13 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  const { isCollapsed, toggleCollapsed } = useSidebarStore();
 
   return (
     <div className={styles.dashboardLayout}>
-      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+      <Sidebar collapsed={isCollapsed} onToggle={toggleCollapsed} />
       <div
-        className={`${styles.mainArea} ${
-          sidebarCollapsed ? styles.expanded : ""
-        }`}
+        className={`${styles.mainArea} ${isCollapsed ? styles.expanded : ""}`}
       >
         <Topbar />
         <main className={styles.content}>{children}</main>

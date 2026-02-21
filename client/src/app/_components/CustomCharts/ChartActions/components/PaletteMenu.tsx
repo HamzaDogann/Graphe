@@ -1,11 +1,13 @@
 import React, { useRef, useState, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import styles from "../ChartActions.module.scss";
 import { useTooltipPosition } from "../hooks/useTooltipPosition";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { COLOR_PALETTES } from "../constants";
 import { PaletteKey } from "../types";
+import { tooltipPopover } from "@/lib/animations";
 
 interface PaletteMenuProps {
   onClose: () => void;
@@ -59,12 +61,16 @@ export const PaletteMenu = ({
   if (!anchorRect) return null;
 
   return createPortal(
-    <div
+    <motion.div
       ref={menuRef}
       className={styles.paletteMenu}
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={handleMenuClick}
+      variants={tooltipPopover}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
     >
       <div className={styles.menuHeader}>
         <span>Color Palette</span>
@@ -117,7 +123,7 @@ export const PaletteMenu = ({
           ))}
         </div>
       </div>
-    </div>,
+    </motion.div>,
     document.body,
   );
 };

@@ -1,0 +1,22 @@
+.newCanvasBtn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #2563eb;
+    }
+
+    &:active {
+        background: #1d4ed8;
+    }
+}

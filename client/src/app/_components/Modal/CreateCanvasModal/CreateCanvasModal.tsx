@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Type, FileText } from "lucide-react";
@@ -51,7 +52,7 @@ export const CreateCanvasModal = ({
     onClose();
   };
 
-  return (
+  const modalElement = (
     <AnimatePresence>
       {isOpen && (
         <div className={styles.portalWrapper}>
@@ -142,6 +143,8 @@ export const CreateCanvasModal = ({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalElement, document.body);
 };
 
 export default CreateCanvasModal;

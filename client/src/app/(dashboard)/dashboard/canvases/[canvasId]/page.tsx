@@ -3,10 +3,16 @@
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useSidebarStore } from "@/store/useSidebarStore";
 import { isValidCanvasId } from "@/lib/generateId";
 import { Hash, ArrowLeft, LayoutGrid } from "lucide-react";
 import Link from "next/link";
-import { CanvasWorkspace, PropertiesPanel, CanvasToolbar } from "./components";
+import {
+  CanvasWorkspace,
+  PropertiesPanel,
+  CanvasToolbar,
+  CanvasTopBar,
+} from "./components";
 import styles from "./canvas.module.scss";
 
 export default function CanvasDetailPage() {
@@ -14,6 +20,15 @@ export default function CanvasDetailPage() {
   const canvasId = params.canvasId as string;
 
   const { canvases, setActiveCanvas } = useCanvasStore();
+  const { setCollapsed } = useSidebarStore();
+
+  useEffect(() => {
+    // Collapse sidebar when entering canvas page
+    setCollapsed(true);
+
+    // Cleanup: optionally expand sidebar when leaving
+    // return () => setCollapsed(false);
+  }, [setCollapsed]);
 
   useEffect(() => {
     // Find and set the active canvas
@@ -62,9 +77,12 @@ export default function CanvasDetailPage() {
 
   return (
     <div className={styles.canvasPage}>
+      {/* Top Bar */}
+      <CanvasTopBar />
+
       {/* Canvas Editor Layout */}
       <div className={styles.editorLayout}>
-        {/* Canvas Workspace (Left) */}
+        {/* Canvas Workspace (Center) */}
         <CanvasWorkspace />
 
         {/* Properties Panel (Right) */}

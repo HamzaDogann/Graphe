@@ -1,11 +1,13 @@
 import React, { useRef, useState, useMemo, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { X, ChevronDown, Check, Bold, Italic, Underline } from "lucide-react";
 import styles from "../ChartActions.module.scss";
 import { useTooltipPosition } from "../hooks/useTooltipPosition";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { FONT_FAMILIES } from "../constants";
 import { TypographySettings } from "../types";
+import { tooltipPopover } from "@/lib/animations";
 
 interface TypographyMenuProps {
   onClose: () => void;
@@ -61,12 +63,16 @@ export const TypographyMenu = ({
   if (!anchorRect) return null;
 
   return createPortal(
-    <div
+    <motion.div
       ref={menuRef}
       className={styles.typographyMenu}
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={handleMenuClick}
+      variants={tooltipPopover}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
     >
       <div className={styles.menuHeader}>
         <span>Typography</span>
@@ -174,7 +180,7 @@ export const TypographyMenu = ({
           <span className={styles.colorValue}>{typography.color}</span>
         </button>
       </div>
-    </div>,
+    </motion.div>,
     document.body,
   );
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { memo, useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import {
   ChartActionsProps,
   ActiveColorPickerState,
@@ -147,73 +148,92 @@ export const ChartActions = memo((props: ChartActionsProps) => {
         }}
       />
 
-      {isMounted && state.showPaletteMenu && paletteAnchorRect && (
-        <PaletteMenu
-          anchorRect={paletteAnchorRect}
-          onClose={handlePaletteClose}
-          selectedPalette={state.selectedPalette}
-          onPaletteSelect={actions.handlePaletteSelect}
-          customColors={state.customColors}
-          onCustomColorClick={(index, rect, element) =>
-            setActiveColorPicker({ index, rect, element })
-          }
-          activeColorIndex={activeColorPicker?.index ?? null}
-          buttonRef={refs.paletteButtonRef}
-          onCloseColorPicker={() => setActiveColorPicker(null)}
-        />
+      {isMounted && (
+        <AnimatePresence>
+          {state.showPaletteMenu && paletteAnchorRect && (
+            <PaletteMenu
+              anchorRect={paletteAnchorRect}
+              onClose={handlePaletteClose}
+              selectedPalette={state.selectedPalette}
+              onPaletteSelect={actions.handlePaletteSelect}
+              customColors={state.customColors}
+              onCustomColorClick={(index, rect, element) =>
+                setActiveColorPicker({ index, rect, element })
+              }
+              activeColorIndex={activeColorPicker?.index ?? null}
+              buttonRef={refs.paletteButtonRef}
+              onCloseColorPicker={() => setActiveColorPicker(null)}
+            />
+          )}
+        </AnimatePresence>
       )}
 
-      {isMounted &&
-        state.showTypographyMenu &&
-        state.typography &&
-        typographyAnchorRect && (
-          <TypographyMenu
-            anchorRect={typographyAnchorRect}
-            onClose={handleTypographyClose}
-            typography={state.typography}
-            onUpdate={actions.handleTypographyUpdate}
-            onColorClick={(rect, element) =>
-              setActiveTypoColorPicker({ rect, element })
-            }
-            isColorPickerOpen={!!activeTypoColorPicker}
-            buttonRef={refs.typographyButtonRef}
-            onCloseColorPicker={() => setActiveTypoColorPicker(null)}
-          />
-        )}
-
-      {isMounted && activeColorPicker && (
-        <ColorPickerTooltip
-          color={state.customColors[activeColorPicker.index]}
-          anchorRect={activeColorPicker.rect}
-          onClose={() => setActiveColorPicker(null)}
-          onChange={(color) =>
-            actions.handleCustomColorChange(activeColorPicker.index, color)
-          }
-        />
+      {isMounted && (
+        <AnimatePresence>
+          {state.showTypographyMenu &&
+            state.typography &&
+            typographyAnchorRect && (
+              <TypographyMenu
+                anchorRect={typographyAnchorRect}
+                onClose={handleTypographyClose}
+                typography={state.typography}
+                onUpdate={actions.handleTypographyUpdate}
+                onColorClick={(rect, element) =>
+                  setActiveTypoColorPicker({ rect, element })
+                }
+                isColorPickerOpen={!!activeTypoColorPicker}
+                buttonRef={refs.typographyButtonRef}
+                onCloseColorPicker={() => setActiveTypoColorPicker(null)}
+              />
+            )}
+        </AnimatePresence>
       )}
 
-      {isMounted && activeTypoColorPicker && state.typography && (
-        <ColorPickerTooltip
-          color={state.typography.color}
-          anchorRect={activeTypoColorPicker.rect}
-          onClose={() => setActiveTypoColorPicker(null)}
-          onChange={(color) => actions.handleTypographyUpdate("color", color)}
-        />
+      {isMounted && (
+        <AnimatePresence>
+          {activeColorPicker && (
+            <ColorPickerTooltip
+              color={state.customColors[activeColorPicker.index]}
+              anchorRect={activeColorPicker.rect}
+              onClose={() => setActiveColorPicker(null)}
+              onChange={(color) =>
+                actions.handleCustomColorChange(activeColorPicker.index, color)
+              }
+            />
+          )}
+        </AnimatePresence>
       )}
 
-      {isMounted &&
-        state.showInfoTooltip &&
-        props.chartInfo &&
-        infoAnchorRect && (
-          <ChartInfoTooltip
-            chartInfo={props.chartInfo}
-            anchorRect={infoAnchorRect}
-            onClose={() => {
-              actions.setShowInfoTooltip(false);
-              setInfoAnchorRect(null);
-            }}
-          />
-        )}
+      {isMounted && (
+        <AnimatePresence>
+          {activeTypoColorPicker && state.typography && (
+            <ColorPickerTooltip
+              color={state.typography.color}
+              anchorRect={activeTypoColorPicker.rect}
+              onClose={() => setActiveTypoColorPicker(null)}
+              onChange={(color) =>
+                actions.handleTypographyUpdate("color", color)
+              }
+            />
+          )}
+        </AnimatePresence>
+      )}
+
+      {isMounted && (
+        <AnimatePresence>
+          {state.showInfoTooltip && props.chartInfo && infoAnchorRect && (
+            <ChartInfoTooltip
+              chartInfo={props.chartInfo}
+              anchorRect={infoAnchorRect}
+              buttonRef={refs.infoButtonRef}
+              onClose={() => {
+                actions.setShowInfoTooltip(false);
+                setInfoAnchorRect(null);
+              }}
+            />
+          )}
+        </AnimatePresence>
+      )}
     </>
   );
 });

@@ -20,6 +20,7 @@ interface CanvasState {
   clearActiveCanvas: () => void;
   addCanvas: (canvas: Canvas) => void;
   removeCanvas: (id: string) => void;
+  clearAllCanvases: () => void;
   getCanvasById: (id: string) => Canvas | undefined;
 }
 
@@ -41,6 +42,8 @@ export const useCanvasStore = create<CanvasState>()(
         canvases: state.canvases.filter((c) => c.id !== id),
         activeCanvas: state.activeCanvas?.id === id ? null : state.activeCanvas
       })),
+      
+      clearAllCanvases: () => set({ canvases: [], activeCanvas: null }),
       
       getCanvasById: (id) => get().canvases.find((c) => c.id === id),
     }),

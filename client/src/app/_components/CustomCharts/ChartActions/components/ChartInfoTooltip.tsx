@@ -1,28 +1,32 @@
-import React, { useRef } from "react";
+import React, { useRef, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { X, Type, FileText, Calendar } from "lucide-react";
 import styles from "../ChartActions.module.scss";
 import { useTooltipPosition } from "../hooks/useTooltipPosition";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { getExtensionLogo, formatDate } from "../utils";
+import { tooltipPopover } from "@/lib/animations";
 import type { ChartInfo } from "@/types/chart";
 
 interface ChartInfoTooltipProps {
   chartInfo: ChartInfo;
   onClose: () => void;
   anchorRect: DOMRect | null;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
 }
 
 export const ChartInfoTooltip = ({
   chartInfo,
   onClose,
   anchorRect,
+  buttonRef,
 }: ChartInfoTooltipProps) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const position = useTooltipPosition(anchorRect, 340, 300);
 
-  useClickOutside(tooltipRef, onClose);
+  useClickOutside(tooltipRef, onClose, buttonRef ? [buttonRef] : []);
 
   if (!anchorRect) return null;
 
@@ -31,11 +35,15 @@ export const ChartInfoTooltip = ({
     : null;
 
   return createPortal(
-    <div
+    <motion.div
       ref={tooltipRef}
       className={styles.chartInfoTooltip}
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.stopPropagation()}
+      variants={tooltipPopover}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
     >
       <div className={styles.infoHeader}>
         <span className={styles.infoHeaderTitle}>Chart Information</span>
@@ -93,7 +101,7 @@ export const ChartInfoTooltip = ({
           </span>
         </div>
       </div>
-    </div>,
+    </motion.div>,
     document.body,
   );
 };

@@ -53,7 +53,7 @@ export default function ChartsPage() {
     <div className={styles.chartsPage}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <BarChart3 size={28} className={styles.headerIcon} />
+          <BarChart3 size={32} className={styles.headerIcon} />
           <div>
             <h1 className={styles.title}>Saved Charts</h1>
             <p className={styles.subtitle}>
@@ -67,7 +67,7 @@ export default function ChartsPage() {
       {chartsList.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
-            <BarChart3 size={60} />
+            <BarChart3 size={64} />
           </div>
           <h2>No saved charts yet</h2>
           <p>
