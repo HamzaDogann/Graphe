@@ -97,7 +97,7 @@ export default function ChartDetailPage({ params }: PageProps) {
       }
     }
 
-    router.push("/dashboard/charts");
+    router.back();
   }, [chart?.isFavorite, chartId, router, updateChartInCache]);
 
   const handleToggleFavorite = () => {

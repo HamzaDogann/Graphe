@@ -49,7 +49,7 @@ const propertyMenuItems: PropertyMenuItem[] = [
     id: "charts",
     icon: <BarChart3 size={22} />,
     label: "Charts",
-    description: "Create charts and data visualizations",
+    description: "Add your saved charts to the canvas",
     content: <ChartsContent />,
   },
   {

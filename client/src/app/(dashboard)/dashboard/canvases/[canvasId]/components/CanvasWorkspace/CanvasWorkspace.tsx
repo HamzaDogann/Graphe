@@ -21,6 +21,8 @@ export const CanvasWorkspace = () => {
     updateElementPosition,
     updateElementSize,
     updateElement,
+    canvasWidth,
+    canvasHeight,
   } = useCanvasEditorStore();
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -114,6 +116,10 @@ export const CanvasWorkspace = () => {
             className={styles.canvas}
             onClick={handleCanvasClick}
             data-canvas-export="true"
+            style={{
+              width: `${canvasWidth}px`,
+              height: `${canvasHeight}px`,
+            }}
           >
             {/* Render elements using memoized CanvasElement component */}
             {elements.map((element) => (

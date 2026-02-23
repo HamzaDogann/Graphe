@@ -152,6 +152,15 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
             </div>
           ) : null}
 
+          {element.type === "image" && element.imageConfig && (
+            <img
+              src={element.imageConfig.src}
+              alt={element.imageConfig.alt || "Chart image"}
+              className={styles.imageElement}
+              draggable={false}
+            />
+          )}
+
           {element.type === "text" && (
             <>
               {isEditing ? (
@@ -287,6 +296,7 @@ export const CanvasElement = memo(CanvasElementComponent, (prev, next) => {
     prev.element.style?.fontStyle === next.element.style?.fontStyle &&
     prev.element.style?.textType === next.element.style?.textType &&
     prev.element.chartConfig === next.element.chartConfig &&
+    prev.element.imageConfig?.src === next.element.imageConfig?.src &&
     prev.isSelected === next.isSelected &&
     prev.zoom === next.zoom
   );

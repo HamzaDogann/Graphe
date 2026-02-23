@@ -1,11 +1,15 @@
 .propertiesPanel {
-    position: relative;
-    height: 100%;
+    position: sticky;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    max-height: 100vh;
     background: #ffffff;
     border-left: 1px solid #e2e8f0;
     display: flex;
     flex-direction: row;
     flex-shrink: 0;
+    z-index: 10;
 }
 
 .iconMenu {
@@ -13,6 +17,8 @@
     flex-direction: column;
     padding: 16px 8px;
     gap: 4px;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .iconButton {

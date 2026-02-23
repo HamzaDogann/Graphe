@@ -65,19 +65,17 @@
     transform-origin: top center;
 }
 
-/* A4 Page - Fixed dimensions */
+/* Canvas Page - Dynamic dimensions via inline styles */
 .canvas {
     position: relative;
-    width: 794px;
-    /* A4 width: 210mm = 794px at 96 DPI */
-    height: 1123px;
-    /* A4 height: 297mm = 1123px at 96 DPI */
+    /* Width and height are set dynamically via inline styles */
     background: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
     border: 1px solid #e2e8f0;
     padding: 40px;
     margin: 0;
+    transition: width 0.3s ease, height 0.3s ease;
 }
 
 .gridLayout {
@@ -268,12 +266,22 @@
     }
 }
 
+/* Image Element */
+.imageElement {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+}
+
 /* Empty State */
 .emptyState {
     position: absolute;
-    inset: 0;
+    top: 100px;
+    left: 0;
+    right: 0;
     display: flex;
-    align-items: center;
     justify-content: center;
     pointer-events: none;
 
@@ -281,6 +289,7 @@
         font-size: 15px;
         color: #94a3b8;
         margin: 0;
+        text-align: center;
     }
 }
 
