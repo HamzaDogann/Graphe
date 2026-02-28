@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useCanvasEditorStore } from "@/store/useCanvasEditorStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { isValidCanvasId } from "@/lib/generateId";
-import { Hash, ArrowLeft, LayoutGrid } from "lucide-react";
+import { Hash, ArrowLeft, LayoutGrid, Loader2 } from "lucide-react";
 import Link from "next/link";
 import {
   CanvasWorkspace,
@@ -19,27 +20,37 @@ export default function CanvasDetailPage() {
   const params = useParams();
   const canvasId = params.canvasId as string;
 
-  const { canvases, setActiveCanvas } = useCanvasStore();
+  const { canvases, isLoaded, isFetching, fetchCanvases, getCanvasById } =
+    useCanvasStore();
+  const {
+    loadCanvas,
+    isLoading: isEditorLoading,
+    canvasId: loadedCanvasId,
+  } = useCanvasEditorStore();
   const { setCollapsed } = useSidebarStore();
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   useEffect(() => {
     // Collapse sidebar when entering canvas page
     setCollapsed(true);
-
-    // Cleanup: optionally expand sidebar when leaving
-    // return () => setCollapsed(false);
   }, [setCollapsed]);
 
+  // Fetch canvases if not loaded yet
   useEffect(() => {
-    // Find and set the active canvas
-    const canvas = canvases.find((c) => c.id === canvasId);
-    if (canvas) {
-      setActiveCanvas(canvas);
+    if (!isLoaded && !isFetching && !hasAttemptedFetch) {
+      setHasAttemptedFetch(true);
+      fetchCanvases();
     }
-  }, [canvasId, canvases, setActiveCanvas]);
+  }, [isLoaded, isFetching, hasAttemptedFetch, fetchCanvases]);
 
-  // Find the canvas from store
-  const canvas = canvases.find((c) => c.id === canvasId);
+  // Load canvas content into editor store
+  useEffect(() => {
+    const canvas = getCanvasById(canvasId);
+    if (canvas && loadedCanvasId !== canvasId) {
+      // Canvas exists in list store, now load full content
+      loadCanvas(canvasId);
+    }
+  }, [canvasId, canvases, getCanvasById, loadCanvas, loadedCanvasId]);
 
   // Validate canvas ID format
   if (!isValidCanvasId(canvasId)) {
@@ -58,8 +69,25 @@ export default function CanvasDetailPage() {
     );
   }
 
-  // Canvas not found
-  if (!canvas) {
+  // Find the canvas from store
+  const canvas = getCanvasById(canvasId);
+
+  // Show loading while fetching canvases or loading editor
+  if (
+    isFetching ||
+    (!isLoaded && !hasAttemptedFetch) ||
+    (canvas && isEditorLoading)
+  ) {
+    return (
+      <div className={styles.loadingState}>
+        <Loader2 size={32} className={styles.spinner} />
+        <p>Loading canvas...</p>
+      </div>
+    );
+  }
+
+  // Canvas not found after fetch attempt
+  if (!canvas && isLoaded) {
     return (
       <div className={styles.errorState}>
         <div className={styles.errorIcon}>
@@ -71,6 +99,16 @@ export default function CanvasDetailPage() {
           <ArrowLeft size={18} />
           Back to Canvases
         </Link>
+      </div>
+    );
+  }
+
+  // Still waiting for data
+  if (!canvas) {
+    return (
+      <div className={styles.loadingState}>
+        <Loader2 size={32} className={styles.spinner} />
+        <p>Loading canvas...</p>
       </div>
     );
   }

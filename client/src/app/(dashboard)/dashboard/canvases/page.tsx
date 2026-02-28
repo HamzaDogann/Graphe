@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
-import { FileChartPie } from "lucide-react";
+import { FileChartPie, Loader2 } from "lucide-react";
 import { CreateCanvasButton } from "@/app/_components/CreateCanvas";
 import {
   NewCanvasButton,
@@ -11,7 +12,26 @@ import { CanvasCard } from "./_components";
 import styles from "./canvases.module.scss";
 
 export default function CanvasesPage() {
-  const { canvases } = useCanvasStore();
+  const { canvases, isLoaded, isFetching, fetchCanvases } = useCanvasStore();
+
+  // Fetch canvases on first load
+  useEffect(() => {
+    if (!isLoaded && !isFetching) {
+      fetchCanvases();
+    }
+  }, [isLoaded, isFetching, fetchCanvases]);
+
+  // Show loading state on first fetch
+  if (!isLoaded && isFetching) {
+    return (
+      <div className={styles.canvasesPage}>
+        <div className={styles.loadingState}>
+          <Loader2 size={32} className={styles.spinner} />
+          <p>Loading canvases...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.canvasesPage}>

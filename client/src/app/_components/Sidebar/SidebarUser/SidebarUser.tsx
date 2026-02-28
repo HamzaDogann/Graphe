@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./SidebarUser.module.scss";
 import { useUserStore } from "@/store/useUserStore";
+import { useUserAvatar } from "@/hooks";
 import { SettingsModal } from "@/app/_components";
 import { dropdownFromBottomLeft, transformOrigins } from "@/lib/animations";
 
@@ -15,6 +16,7 @@ interface SidebarUserProps {
 
 export function SidebarUser({ collapsed }: SidebarUserProps) {
   const { user, isLoadingUser, logout } = useUserStore();
+  const { hasImage, imageUrl, initials, gradient } = useUserAvatar();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -62,16 +64,6 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
 
   if (!user) return null;
 
-  // İsimden baş harfleri alma (Güvenli erişim)
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U";
-
   return (
     <div className={styles.userContainer} ref={menuRef}>
       <AnimatePresence>
@@ -115,9 +107,12 @@ export function SidebarUser({ collapsed }: SidebarUserProps) {
         className={`${styles.userButton} ${collapsed ? styles.collapsed : ""}`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        <div className={styles.avatar}>
-          {user.image ? (
-            <img src={user.image} alt={user.name || "User"} />
+        <div
+          className={styles.avatar}
+          style={!hasImage ? { background: gradient } : undefined}
+        >
+          {hasImage && imageUrl ? (
+            <img src={imageUrl} alt={user.name || "User"} />
           ) : (
             <span className={styles.initials}>{initials}</span>
           )}

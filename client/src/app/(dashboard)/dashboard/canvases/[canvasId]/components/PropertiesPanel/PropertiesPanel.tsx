@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Type, BarChart3, Image, Pencil, Shapes } from "lucide-react";
+import {
+  FileText,
+  Type,
+  BarChart3,
+  Image,
+  Pencil,
+  Shapes,
+  Info,
+} from "lucide-react";
 import { ActivePropertyMenu } from "../ActivePropertyMenu";
 import {
   PageContent,
@@ -10,6 +18,7 @@ import {
   ImageContent,
   DrawContent,
   ShapesContent,
+  InformationContent,
 } from "../PropertyContents";
 import styles from "./PropertiesPanel.module.scss";
 
@@ -20,6 +29,7 @@ type PropertyType =
   | "image"
   | "draw"
   | "shapes"
+  | "info"
   | null;
 
 interface PropertyMenuItem {
@@ -72,6 +82,13 @@ const propertyMenuItems: PropertyMenuItem[] = [
     label: "Shapes",
     description: "Add geometric shapes",
     content: <ShapesContent />,
+  },
+  {
+    id: "info",
+    icon: <Info size={22} />,
+    label: "Info",
+    description: "Canvas information and details",
+    content: <InformationContent />,
   },
 ];
 

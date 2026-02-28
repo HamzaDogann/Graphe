@@ -3,14 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { Info, Settings, Zap, Check, X } from "lucide-react";
-import { useCanvasStore } from "@/store/useCanvasStore";
+import { useCanvasEditorStore } from "@/store/useCanvasEditorStore";
 import { useChatStore, selectActiveChat } from "@/store/useChatStore";
 import { useChartsStore } from "@/store/useChartsStore";
 import styles from "./Topbar.module.scss";
 
 export function Topbar() {
   const pathname = usePathname();
-  const { activeCanvas } = useCanvasStore();
+  const { title: canvasTitle } = useCanvasEditorStore();
 
   // Chat store
   const activeChat = useChatStore(selectActiveChat);
@@ -104,7 +104,7 @@ export function Topbar() {
 
     // Canvas detail page
     if (pathname?.startsWith("/dashboard/canvases/canvas-")) {
-      return activeCanvas?.name || "Canvas";
+      return canvasTitle || "Untitled Canvas";
     }
 
     // Canvases list page

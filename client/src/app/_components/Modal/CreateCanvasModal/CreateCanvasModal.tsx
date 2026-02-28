@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Type, FileText } from "lucide-react";
 import Image from "next/image";
 import { useCanvasStore } from "@/store/useCanvasStore";
-import { generateCanvasId } from "@/lib/generateId";
 import { modalBackdrop, modalContent } from "@/lib/animations";
 import styles from "./CreateCanvasModal.module.scss";
 
@@ -22,28 +21,38 @@ export const CreateCanvasModal = ({
 }: CreateCanvasModalProps) => {
   const [canvasName, setCanvasName] = useState("");
   const [canvasDescription, setCanvasDescription] = useState("");
-  const { addCanvas } = useCanvasStore();
+  const [isCreating, setIsCreating] = useState(false);
+  const { addCanvasWithSync } = useCanvasStore();
   const router = useRouter();
 
-  const handleCreate = () => {
-    if (!canvasName.trim()) return;
+  const handleCreate = async () => {
+    if (!canvasName.trim() || isCreating) return;
 
-    const newCanvas = {
-      id: generateCanvasId(),
-      name: canvasName.trim(),
-      description: canvasDescription.trim(),
-      createdAt: new Date(),
-    };
+    setIsCreating(true);
 
-    addCanvas(newCanvas);
+    try {
+      // Create canvas - adds to local store + syncs to DB
+      const canvasId = await addCanvasWithSync(
+        canvasName.trim(),
+        canvasDescription.trim() || undefined,
+      );
 
-    // Reset form
-    setCanvasName("");
-    setCanvasDescription("");
-    onClose();
+      if (canvasId) {
+        // Reset form
+        setCanvasName("");
+        setCanvasDescription("");
+        onClose();
 
-    // Navigate to the new canvas
-    router.push(`/dashboard/canvases/${newCanvas.id}`);
+        // Navigate to the new canvas
+        router.push(`/dashboard/canvases/${canvasId}`);
+      } else {
+        console.error("Failed to create canvas");
+      }
+    } catch (error) {
+      console.error("Error creating canvas:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleCancel = () => {
@@ -125,15 +134,19 @@ export const CreateCanvasModal = ({
 
                 {/* Action Buttons */}
                 <div className={styles.actions}>
-                  <button className={styles.cancelBtn} onClick={handleCancel}>
+                  <button
+                    className={styles.cancelBtn}
+                    onClick={handleCancel}
+                    disabled={isCreating}
+                  >
                     Cancel
                   </button>
                   <button
                     className={styles.createBtn}
                     onClick={handleCreate}
-                    disabled={!canvasName.trim()}
+                    disabled={!canvasName.trim() || isCreating}
                   >
-                    Create Canvas
+                    {isCreating ? "Creating..." : "Create Canvas"}
                   </button>
                 </div>
               </div>

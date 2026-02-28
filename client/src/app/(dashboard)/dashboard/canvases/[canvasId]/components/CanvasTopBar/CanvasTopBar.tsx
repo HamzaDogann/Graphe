@@ -12,23 +12,47 @@ import {
   FileImage,
   FileType,
   ArrowLeft,
+  Trash2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toPng, toJpeg, toSvg } from "html-to-image";
 import { dropdownFromTop, tooltipPopover } from "@/lib/animations";
+import { useCanvasStore } from "@/store/useCanvasStore";
+import { ConfirmationModal } from "@/app/_components";
 import styles from "./CanvasTopBar.module.scss";
 
 export const CanvasTopBar = () => {
   const router = useRouter();
+  const params = useParams();
+  const canvasId = params.canvasId as string;
+
+  const { canvases, removeCanvasWithSync } = useCanvasStore();
+  const currentCanvas = canvases.find((c) => c.id === canvasId);
+
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">(
     "saved",
   );
 
   const handleBack = () => {
     router.push("/dashboard/canvases");
+  };
+
+  const handleDeleteCanvas = async () => {
+    setIsDeleting(true);
+    try {
+      await removeCanvasWithSync(canvasId);
+      router.push("/dashboard/canvases");
+    } catch (error) {
+      console.error("Failed to delete canvas:", error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
   };
 
   const fileMenuRef = useRef<HTMLDivElement>(null);
@@ -145,9 +169,16 @@ export const CanvasTopBar = () => {
                 animate="visible"
                 exit="exit"
               >
-                <div className={styles.menuPlaceholder}>
-                  <span>Menu options coming soon...</span>
-                </div>
+                <button
+                  className={`${styles.fileMenuItem} ${styles.deleteItem}`}
+                  onClick={() => {
+                    setIsFileMenuOpen(false);
+                    setShowDeleteModal(true);
+                  }}
+                >
+                  <Trash2 size={16} />
+                  <span>Delete Canvas</span>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -243,6 +274,17 @@ export const CanvasTopBar = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteCanvas}
+        title="Delete Canvas"
+        message={`Are you sure you want to delete "${currentCanvas?.title || "this canvas"}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

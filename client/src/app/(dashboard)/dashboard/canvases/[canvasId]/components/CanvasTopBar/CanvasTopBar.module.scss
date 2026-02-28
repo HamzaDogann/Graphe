@@ -88,6 +88,38 @@
     font-size: 13px;
 }
 
+.fileMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+
+    &:hover {
+        background: #f8fafc;
+    }
+
+    &:not(:last-child) {
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    &.deleteItem {
+        color: #64748b;
+
+        &:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+    }
+}
+
 /* Center Section - Undo/Redo & Save Status */
 .centerSection {
     display: flex;
