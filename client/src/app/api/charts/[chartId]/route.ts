@@ -110,6 +110,75 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // If thumbnail is updated, sync all canvas elements that use this chart
+    if (body.thumbnail !== undefined) {
+      try {
+        // Get all canvases belonging to the user
+        const canvases = await prisma.canvas.findMany({
+          where: { userId: user.id },
+          select: { id: true, elements: true },
+        });
+
+        // Update canvas elements that reference this chart
+        for (const canvas of canvases) {
+          const elements = canvas.elements as unknown[];
+          if (!Array.isArray(elements)) continue;
+
+          let hasUpdates = false;
+          const updatedElements = elements.map((element: unknown) => {
+            const el = element as {
+              type?: string;
+              chartConfig?: { chartId?: string; imageBase64?: string };
+              imageConfig?: { chartId?: string; src?: string };
+            };
+            
+            // Check if this is a chart element with matching chartId
+            if (
+              el.type === "chart" &&
+              el.chartConfig?.chartId === chartId
+            ) {
+              hasUpdates = true;
+              return {
+                ...el,
+                chartConfig: {
+                  ...el.chartConfig,
+                  imageBase64: body.thumbnail,
+                },
+              };
+            }
+            
+            // Backward compatibility: image elements with chartId
+            if (
+              el.type === "image" &&
+              el.imageConfig?.chartId === chartId
+            ) {
+              hasUpdates = true;
+              return {
+                ...el,
+                imageConfig: {
+                  ...el.imageConfig,
+                  src: body.thumbnail,
+                },
+              };
+            }
+            
+            return el;
+          });
+
+          // Only update if there were changes
+          if (hasUpdates) {
+            await prisma.canvas.update({
+              where: { id: canvas.id },
+              data: { elements: updatedElements },
+            });
+          }
+        }
+      } catch (syncError) {
+        // Log but don't fail the main request if sync fails
+        console.error("Error syncing canvas elements:", syncError);
+      }
+    }
+
     return NextResponse.json({ chart });
   } catch (error) {
     console.error("Error updating chart:", error);

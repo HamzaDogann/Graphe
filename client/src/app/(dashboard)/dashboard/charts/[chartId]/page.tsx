@@ -12,6 +12,7 @@ import {
   StoredChartData,
   ChartStyling,
 } from "@/types/chat";
+import { ChartType } from "@/constants/chartTypes";
 import { useChartsStore } from "@/store/useChartsStore";
 import styles from "./chartDetail.module.scss";
 
@@ -62,12 +63,8 @@ export default function ChartDetailPage({ params }: PageProps) {
   }, [chartId, chart, fetchChartDetail]);
 
   const handleBack = useCallback(async () => {
-    // If styling changed and chart is favorite, capture and update thumbnail
-    if (
-      hasStylingChangedRef.current &&
-      chart?.isFavorite &&
-      chartContainerRef.current
-    ) {
+    // If styling changed, capture and update thumbnail for canvas sync
+    if (hasStylingChangedRef.current && chartContainerRef.current) {
       try {
         const chartCanvas = chartContainerRef.current.querySelector(
           ".apexcharts-canvas",
@@ -86,7 +83,7 @@ export default function ChartDetailPage({ params }: PageProps) {
         // Update local state immediately (optimistic)
         updateChartInCache(chartId, { thumbnail });
 
-        // Fire-and-forget API call to update thumbnail
+        // Fire-and-forget API call to update thumbnail (also syncs canvas elements)
         fetch(`/api/charts/${chartId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -98,7 +95,7 @@ export default function ChartDetailPage({ params }: PageProps) {
     }
 
     router.back();
-  }, [chart?.isFavorite, chartId, router, updateChartInCache]);
+  }, [chartId, router, updateChartInCache]);
 
   const handleToggleFavorite = () => {
     // Optimistic UI - no await needed
@@ -144,7 +141,7 @@ export default function ChartDetailPage({ params }: PageProps) {
     if (!chart) return null;
 
     return {
-      type: chart.type as "pie" | "bar" | "line" | "table",
+      type: chart.type as ChartType,
       title: chart.title,
       description: chart.description || undefined,
       createdAt: chart.createdAt,

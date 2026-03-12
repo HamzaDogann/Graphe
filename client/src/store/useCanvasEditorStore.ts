@@ -32,8 +32,13 @@ interface CanvasEditorState {
   // Canvas elements
   elements: CanvasElement[];
   
-  // Selected element
+  // Selected element(s)
   selectedElementId: string | null;
+  selectedElementIds: string[];
+  
+  // Clipboard
+  clipboard: CanvasElement | null;
+  clipboardMultiple: CanvasElement[];
   
   // Properties panel state
   isPanelOpen: boolean;
@@ -59,24 +64,48 @@ interface CanvasEditorState {
   addElement: (element: CanvasElement) => void;
   addElementCentered: (element: Omit<CanvasElement, 'x' | 'y' | 'zIndex'>) => void;
   removeElement: (id: string) => void;
+  removeElements: (ids: string[]) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   updateElementPosition: (id: string, x: number, y: number) => void;
   updateElementSize: (id: string, width: number, height: number) => void;
   setSelectedElement: (id: string | null) => void;
+  setSelectedElements: (ids: string[]) => void;
+  addToSelection: (id: string) => void;
+  toggleSelection: (id: string) => void;
+  clearSelection: () => void;
+  selectElementsInRect: (rect: { x: number; y: number; width: number; height: number }) => void;
   togglePanel: () => void;
   clearElements: () => void;
   setDragging: (isDragging: boolean) => void;
   setResizing: (isResizing: boolean) => void;
+  // Clipboard actions
+  copyElement: () => void;
+  copyElements: () => void;
+  pasteElement: () => void;
+  duplicateElement: () => void;
+  duplicateElements: () => void;
+  // Selection actions
+  selectAll: () => void;
+  nudgeElement: (direction: 'up' | 'down' | 'left' | 'right', amount?: number) => void;
+  nudgeElements: (direction: 'up' | 'down' | 'left' | 'right', amount?: number) => void;
+  bringToFront: () => void;
+  sendToBack: () => void;
+  bringForward: () => void;
+  sendBackward: () => void;
   // Zoom actions
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  resetZoom: () => void;
   // Canvas size actions
   setPageSize: (preset: PageSizePreset) => void;
   setOrientation: (orientation: Orientation) => void;
   setSizeUnit: (unit: SizeUnit) => void;
   setCustomSize: (width: number, height: number) => void;
   setBackground: (color: string) => void;
+  
+  // Chart sync action
+  updateChartThumbnails: (chartId: string, newThumbnail: string) => void;
   
   // DB sync actions
   loadCanvas: (canvasId: string) => Promise<void>;
@@ -102,6 +131,9 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
       
       elements: [],
       selectedElementId: null,
+      selectedElementIds: [],
+      clipboard: null,
+      clipboardMultiple: [],
       isPanelOpen: true,
       zoom: 100,
       isDragging: false,
@@ -130,12 +162,12 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
             : 1;
           const centerX = (state.canvasWidth - element.width) / 2;
           const centerY = (state.canvasHeight - element.height) / 2;
-          const newElement: CanvasElement = {
+          const newElement = {
             ...element,
             x: centerX,
             y: centerY,
             zIndex: maxZIndex,
-          };
+          } as CanvasElement;
           return {
             elements: [...state.elements, newElement],
             selectedElementId: newElement.id,
@@ -147,13 +179,22 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
         set((state) => ({
           elements: state.elements.filter((el) => el.id !== id),
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
+          selectedElementIds: state.selectedElementIds.filter((elId) => elId !== id),
+          isDirty: true,
+        })),
+      
+      removeElements: (ids) =>
+        set((state) => ({
+          elements: state.elements.filter((el) => !ids.includes(el.id)),
+          selectedElementId: ids.includes(state.selectedElementId || '') ? null : state.selectedElementId,
+          selectedElementIds: [],
           isDirty: true,
         })),
       
       updateElement: (id, updates) =>
         set((state) => ({
           elements: state.elements.map((el) =>
-            el.id === id ? { ...el, ...updates } : el
+            el.id === id ? ({ ...el, ...updates } as CanvasElement) : el
           ),
           isDirty: true,
         })),
@@ -174,19 +215,347 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
           isDirty: true,
         })),
       
-      setSelectedElement: (id) => set({ selectedElementId: id }),
+      setSelectedElement: (id) => set({ 
+        selectedElementId: id,
+        selectedElementIds: id ? [id] : [],
+      }),
+      
+      setSelectedElements: (ids) => set({
+        selectedElementIds: ids,
+        selectedElementId: ids.length === 1 ? ids[0] : ids.length > 0 ? ids[0] : null,
+      }),
+      
+      addToSelection: (id) => set((state) => {
+        if (state.selectedElementIds.includes(id)) return {};
+        const newIds = [...state.selectedElementIds, id];
+        return {
+          selectedElementIds: newIds,
+          selectedElementId: newIds.length === 1 ? newIds[0] : state.selectedElementId,
+        };
+      }),
+      
+      toggleSelection: (id) => set((state) => {
+        const isSelected = state.selectedElementIds.includes(id);
+        const newIds = isSelected
+          ? state.selectedElementIds.filter((elId) => elId !== id)
+          : [...state.selectedElementIds, id];
+        return {
+          selectedElementIds: newIds,
+          selectedElementId: newIds.length === 1 ? newIds[0] : newIds.length > 0 ? newIds[0] : null,
+        };
+      }),
+      
+      clearSelection: () => set({
+        selectedElementId: null,
+        selectedElementIds: [],
+      }),
+      
+      selectElementsInRect: (rect) => {
+        const state = get();
+        const selectedIds = state.elements
+          .filter((el) => {
+            // Check if element intersects with selection rectangle
+            const elRight = el.x + el.width;
+            const elBottom = el.y + el.height;
+            const rectRight = rect.x + rect.width;
+            const rectBottom = rect.y + rect.height;
+            
+            return !(
+              el.x > rectRight ||
+              elRight < rect.x ||
+              el.y > rectBottom ||
+              elBottom < rect.y
+            );
+          })
+          .map((el) => el.id);
+        
+        set({
+          selectedElementIds: selectedIds,
+          selectedElementId: selectedIds.length === 1 ? selectedIds[0] : selectedIds.length > 0 ? selectedIds[0] : null,
+        });
+      },
       
       togglePanel: () => set((state) => ({ isPanelOpen: !state.isPanelOpen })),
       
-      clearElements: () => set({ elements: [], selectedElementId: null, isDirty: true }),
+      clearElements: () => set({ elements: [], selectedElementId: null, selectedElementIds: [], isDirty: true }),
       
       setDragging: (isDragging) => set({ isDragging }),
       setResizing: (isResizing) => set({ isResizing }),
       
+      // Clipboard actions
+      copyElement: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const element = state.elements.find(el => el.id === state.selectedElementId);
+        if (element) {
+          set({ 
+            clipboard: JSON.parse(JSON.stringify(element)) as CanvasElement,
+            clipboardMultiple: [], // Clear multi clipboard when copying single
+          });
+        }
+      },
+      
+      pasteElement: () => {
+        const state = get();
+        
+        // If multiple elements are in clipboard, paste all of them
+        if (state.clipboardMultiple.length > 0) {
+          let maxZIndex = state.elements.length > 0 
+            ? Math.max(...state.elements.map(el => el.zIndex)) 
+            : 0;
+          const newElements: CanvasElement[] = [];
+          const newIds: string[] = [];
+          
+          state.clipboardMultiple.forEach((el, index) => {
+            maxZIndex += 1;
+            const newElement = {
+              ...JSON.parse(JSON.stringify(el)),
+              id: `${el.type}-${Date.now()}-${index}`,
+              x: el.x + 20,
+              y: el.y + 20,
+              zIndex: maxZIndex,
+            } as CanvasElement;
+            newElements.push(newElement);
+            newIds.push(newElement.id);
+          });
+          
+          set({
+            elements: [...state.elements, ...newElements],
+            selectedElementIds: newIds,
+            selectedElementId: newIds.length === 1 ? newIds[0] : newIds[0],
+            isDirty: true,
+          });
+          return;
+        }
+        
+        // Single element paste
+        if (!state.clipboard) return;
+        const maxZIndex = state.elements.length > 0 
+          ? Math.max(...state.elements.map(el => el.zIndex)) + 1 
+          : 1;
+        const newElement = {
+          ...JSON.parse(JSON.stringify(state.clipboard)),
+          id: `${state.clipboard.type}-${Date.now()}`,
+          x: state.clipboard.x + 20,
+          y: state.clipboard.y + 20,
+          zIndex: maxZIndex,
+        } as CanvasElement;
+        set({
+          elements: [...state.elements, newElement],
+          selectedElementId: newElement.id,
+          selectedElementIds: [newElement.id],
+          isDirty: true,
+        });
+      },
+      
+      duplicateElement: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const element = state.elements.find(el => el.id === state.selectedElementId);
+        if (!element) return;
+        const maxZIndex = Math.max(...state.elements.map(el => el.zIndex)) + 1;
+        const newElement = {
+          ...JSON.parse(JSON.stringify(element)),
+          id: `${element.type}-${Date.now()}`,
+          x: element.x + 20,
+          y: element.y + 20,
+          zIndex: maxZIndex,
+        } as CanvasElement;
+        set({
+          elements: [...state.elements, newElement],
+          selectedElementId: newElement.id,
+          isDirty: true,
+        });
+      },
+      
+      copyElements: () => {
+        const state = get();
+        if (state.selectedElementIds.length === 0) return;
+        const selectedElements = state.elements.filter(el => state.selectedElementIds.includes(el.id));
+        if (selectedElements.length > 0) {
+          set({ 
+            clipboardMultiple: JSON.parse(JSON.stringify(selectedElements)) as CanvasElement[],
+            clipboard: null, // Clear single clipboard when copying multiple
+          });
+        }
+      },
+      
+      duplicateElements: () => {
+        const state = get();
+        if (state.selectedElementIds.length === 0) return;
+        const selectedElements = state.elements.filter(el => state.selectedElementIds.includes(el.id));
+        if (selectedElements.length === 0) return;
+        
+        let maxZIndex = Math.max(...state.elements.map(el => el.zIndex));
+        const newElements: CanvasElement[] = [];
+        const newIds: string[] = [];
+        
+        selectedElements.forEach((element, index) => {
+          maxZIndex += 1;
+          const newElement = {
+            ...JSON.parse(JSON.stringify(element)),
+            id: `${element.type}-${Date.now()}-${index}`,
+            x: element.x + 20,
+            y: element.y + 20,
+            zIndex: maxZIndex,
+          } as CanvasElement;
+          newElements.push(newElement);
+          newIds.push(newElement.id);
+        });
+        
+        set({
+          elements: [...state.elements, ...newElements],
+          selectedElementIds: newIds,
+          selectedElementId: newIds.length === 1 ? newIds[0] : newIds[0],
+          isDirty: true,
+        });
+      },
+      
+      // Selection actions
+      selectAll: () => {
+        const state = get();
+        if (state.elements.length > 0) {
+          const allIds = state.elements.map(el => el.id);
+          set({ 
+            selectedElementIds: allIds,
+            selectedElementId: allIds.length === 1 ? allIds[0] : allIds[0],
+          });
+        }
+      },
+      
+      nudgeElement: (direction, amount = 1) => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const element = state.elements.find(el => el.id === state.selectedElementId);
+        if (!element) return;
+        
+        let newX = element.x;
+        let newY = element.y;
+        
+        switch (direction) {
+          case 'up': newY -= amount; break;
+          case 'down': newY += amount; break;
+          case 'left': newX -= amount; break;
+          case 'right': newX += amount; break;
+        }
+        
+        // Keep within canvas bounds
+        newX = Math.max(0, Math.min(newX, state.canvasWidth - element.width));
+        newY = Math.max(0, Math.min(newY, state.canvasHeight - element.height));
+        
+        set({
+          elements: state.elements.map(el =>
+            el.id === state.selectedElementId ? { ...el, x: newX, y: newY } : el
+          ),
+          isDirty: true,
+        });
+      },
+      
+      nudgeElements: (direction, amount = 1) => {
+        const state = get();
+        if (state.selectedElementIds.length === 0) return;
+        
+        set({
+          elements: state.elements.map(el => {
+            if (!state.selectedElementIds.includes(el.id)) return el;
+            
+            let newX = el.x;
+            let newY = el.y;
+            
+            switch (direction) {
+              case 'up': newY -= amount; break;
+              case 'down': newY += amount; break;
+              case 'left': newX -= amount; break;
+              case 'right': newX += amount; break;
+            }
+            
+            // Keep within canvas bounds
+            newX = Math.max(0, Math.min(newX, state.canvasWidth - el.width));
+            newY = Math.max(0, Math.min(newY, state.canvasHeight - el.height));
+            
+            return { ...el, x: newX, y: newY };
+          }),
+          isDirty: true,
+        });
+      },
+      
+      bringToFront: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const maxZIndex = Math.max(...state.elements.map(el => el.zIndex)) + 1;
+        set({
+          elements: state.elements.map(el =>
+            el.id === state.selectedElementId ? { ...el, zIndex: maxZIndex } : el
+          ),
+          isDirty: true,
+        });
+      },
+      
+      sendToBack: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const minZIndex = Math.min(...state.elements.map(el => el.zIndex)) - 1;
+        set({
+          elements: state.elements.map(el =>
+            el.id === state.selectedElementId ? { ...el, zIndex: Math.max(0, minZIndex) } : el
+          ),
+          isDirty: true,
+        });
+      },
+      
+      bringForward: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const currentElement = state.elements.find(el => el.id === state.selectedElementId);
+        if (!currentElement) return;
+        
+        // Find the next higher zIndex
+        const sortedElements = [...state.elements].sort((a, b) => a.zIndex - b.zIndex);
+        const currentIndex = sortedElements.findIndex(el => el.id === state.selectedElementId);
+        
+        if (currentIndex < sortedElements.length - 1) {
+          const nextElement = sortedElements[currentIndex + 1];
+          // Swap zIndex values
+          set({
+            elements: state.elements.map(el => {
+              if (el.id === state.selectedElementId) return { ...el, zIndex: nextElement.zIndex };
+              if (el.id === nextElement.id) return { ...el, zIndex: currentElement.zIndex };
+              return el;
+            }),
+            isDirty: true,
+          });
+        }
+      },
+      
+      sendBackward: () => {
+        const state = get();
+        if (!state.selectedElementId) return;
+        const currentElement = state.elements.find(el => el.id === state.selectedElementId);
+        if (!currentElement) return;
+        
+        // Find the next lower zIndex
+        const sortedElements = [...state.elements].sort((a, b) => a.zIndex - b.zIndex);
+        const currentIndex = sortedElements.findIndex(el => el.id === state.selectedElementId);
+        
+        if (currentIndex > 0) {
+          const prevElement = sortedElements[currentIndex - 1];
+          // Swap zIndex values
+          set({
+            elements: state.elements.map(el => {
+              if (el.id === state.selectedElementId) return { ...el, zIndex: prevElement.zIndex };
+              if (el.id === prevElement.id) return { ...el, zIndex: currentElement.zIndex };
+              return el;
+            }),
+            isDirty: true,
+          });
+        }
+      },
+      
       // Zoom actions
-      setZoom: (zoom) => set({ zoom: Math.min(Math.max(zoom, 50), 200) }),
-      zoomIn: () => set((state) => ({ zoom: Math.min(state.zoom + 10, 200) })),
-      zoomOut: () => set((state) => ({ zoom: Math.max(state.zoom - 10, 50) })),
+      setZoom: (zoom) => set({ zoom: Math.min(Math.max(zoom, 25), 400) }),
+      zoomIn: () => set((state) => ({ zoom: Math.min(state.zoom + 10, 400) })),
+      zoomOut: () => set((state) => ({ zoom: Math.max(state.zoom - 10, 25) })),
+      resetZoom: () => set({ zoom: 100 }),
       
       // Canvas size actions
       setPageSize: (preset) => {
@@ -231,6 +600,43 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
         }),
       
       setBackground: (color) => set({ background: color, isDirty: true }),
+      
+      // Chart sync action - updates all chart elements with matching chartId
+      updateChartThumbnails: (chartId: string, newThumbnail: string) => {
+        set((state) => {
+          let hasUpdates = false;
+          const updatedElements = state.elements.map((el) => {
+            // Update chart elements
+            if (el.type === "chart" && el.chartConfig?.chartId === chartId) {
+              hasUpdates = true;
+              return {
+                ...el,
+                chartConfig: {
+                  ...el.chartConfig,
+                  imageBase64: newThumbnail,
+                },
+              };
+            }
+            // Backward compatibility: update image elements with chartId
+            if (el.type === "image" && el.imageConfig?.chartId === chartId) {
+              hasUpdates = true;
+              return {
+                ...el,
+                imageConfig: {
+                  ...el.imageConfig,
+                  src: newThumbnail,
+                },
+              };
+            }
+            return el;
+          });
+          
+          if (hasUpdates) {
+            return { elements: updatedElements, isDirty: true };
+          }
+          return {};
+        });
+      },
       
       // DB sync actions
       setTitle: (title) => set({ title, isDirty: true }),
@@ -365,6 +771,7 @@ export const useCanvasEditorStore = create<CanvasEditorState>()(
           description: null,
           elements: [],
           selectedElementId: null,
+          clipboard: null,
           canvasWidth: PAGE_SIZES.a4.width,
           canvasHeight: PAGE_SIZES.a4.height,
           pageSizePreset: "a4",

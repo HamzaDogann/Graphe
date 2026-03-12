@@ -65,9 +65,20 @@ ${operations}
 
 ## Task Instructions
 1. **Identify Chart Type**: Choose the most suitable chart type based on the user's request and data characteristics:
-   - Use "pie" for showing proportional distribution or percentages
-   - Use "bar" for comparing values across categories
+   - Use "pie" for showing proportional distribution or percentages (solid pie)
+   - Use "donut" for showing proportional distribution with a hollow center (modern look, same data as pie)
+   - Use "bar" for comparing values across categories (single series)
+   - Use "stackedbar" for comparing category segments stacked in bars (multiple series per category). You MUST provide "seriesKeys" with the numeric column names to stack.
    - Use "line" for showing trends over time or continuous data
+   - Use "area" for showing trends with filled area under the curve (volume emphasis)
+   - Use "scatter" for showing correlation between two numeric variables. You MUST provide "xColumn" and "yColumn" with numeric column names.
+   - Use "heatmap" for showing intensity/density across two categorical dimensions. You MUST provide "rowColumn", "colColumn", and "metricColumn".
+   - Use "radar" for comparing multiple variables/metrics on a radial axis. You MUST provide "radarIndicators" (array of metric column names).
+   - Use "treemap" for showing hierarchical data as proportional nested rectangles. Uses groupBy for categories and metricColumn for size.
+   - Use "histogram" for showing frequency distribution of a single numeric column. You MUST provide "metricColumn" (numeric) and optionally "binCount".
+   - Use "boxplot" for showing statistical distribution (quartiles, median, outliers). You MUST provide "metricColumn" (numeric) and optionally "groupBy" for multiple boxes.
+   - Use "bubble" for showing 3-dimensional scatter data (x, y, size). You MUST provide "xColumn", "yColumn", and "sizeColumn".
+   - Use "funnel" for showing sequential process stages with drop-off rates. Uses groupBy for stages and metricColumn for values, sorted by value descending.
    - Use "table" for showing raw data or detailed records
 
 2. **Extract Filters**: Identify any filtering conditions mentioned (e.g., "where Gender is Female", "Sales > 10000")
@@ -86,7 +97,7 @@ ${operations}
 You MUST respond with ONLY a valid JSON object. No explanations, no markdown, no surrounding text.
 
 {
-  "chartType": "bar" | "pie" | "line" | "table",
+  "chartType": "bar" | "pie" | "donut" | "line" | "area" | "stackedbar" | "scatter" | "heatmap" | "radar" | "treemap" | "histogram" | "boxplot" | "bubble" | "funnel" | "table",
   "title": "Descriptive chart title",
   "description": "Brief explanation of what the chart shows",
   "filters": [
@@ -95,19 +106,54 @@ You MUST respond with ONLY a valid JSON object. No explanations, no markdown, no
   "groupBy": "ColumnName" | null,
   "operation": "count" | "sum" | "avg" | "min" | "max" | null,
   "metricColumn": "ColumnName" | null,
-  "sortOrder": "asc" | "desc" | null
+  "sortOrder": "asc" | "desc" | null,
+  "xColumn": "NumericColumnName" | null,
+  "yColumn": "NumericColumnName" | null,
+  "sizeColumn": "NumericColumnName" | null,
+  "rowColumn": "ColumnName" | null,
+  "colColumn": "ColumnName" | null,
+  "binCount": number | null,
+  "radarIndicators": ["MetricColumn1", "MetricColumn2", ...] | null,
+  "seriesKeys": ["Column1", "Column2"] | null
 }
 
 ## Examples
 
 User: "Show me sales by city"
-Response: {"chartType":"bar","title":"Total Sales by City","description":"Bar chart showing total sales for each city","filters":[],"groupBy":"City","operation":"sum","metricColumn":"Sales","sortOrder":"desc"}
+Response: {"chartType":"bar","title":"Total Sales by City","description":"Bar chart showing total sales for each city","filters":[],"groupBy":"City","operation":"sum","metricColumn":"Sales","sortOrder":"desc","xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
 
 User: "How many customers in each region?"
-Response: {"chartType":"pie","title":"Customer Distribution by Region","description":"Pie chart showing customer count per region","filters":[],"groupBy":"Region","operation":"count","metricColumn":null,"sortOrder":null}
+Response: {"chartType":"donut","title":"Customer Distribution by Region","description":"Donut chart showing customer count per region","filters":[],"groupBy":"Region","operation":"count","metricColumn":null,"sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
 
 User: "Show sales trend over months"
-Response: {"chartType":"line","title":"Monthly Sales Trend","description":"Line chart showing sales progression over months","filters":[],"groupBy":"Month","operation":"sum","metricColumn":"Sales","sortOrder":"asc"}
+Response: {"chartType":"area","title":"Monthly Sales Trend","description":"Area chart showing sales progression over months","filters":[],"groupBy":"Month","operation":"sum","metricColumn":"Sales","sortOrder":"asc","xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Correlation between age and salary"
+Response: {"chartType":"scatter","title":"Age vs Salary Correlation","description":"Scatter plot showing relationship between age and salary","filters":[],"groupBy":null,"operation":null,"metricColumn":null,"sortOrder":null,"xColumn":"Age","yColumn":"Salary","sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Compare revenue and expenses by quarter"
+Response: {"chartType":"stackedbar","title":"Revenue vs Expenses by Quarter","description":"Stacked bar chart comparing revenue and expenses per quarter","filters":[],"groupBy":"Quarter","operation":null,"metricColumn":null,"sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":["Revenue","Expenses"]}
+
+User: "Show heatmap of sales by region and product category"
+Response: {"chartType":"heatmap","title":"Sales Heatmap by Region and Category","description":"Heatmap showing sales intensity across regions and product categories","filters":[],"groupBy":null,"operation":"sum","metricColumn":"Sales","sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":"Region","colColumn":"Category","binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Compare employee skills across performance, teamwork, communication and leadership"
+Response: {"chartType":"radar","title":"Employee Skills Comparison","description":"Radar chart comparing multiple skill metrics","filters":[],"groupBy":"Employee","operation":"avg","metricColumn":null,"sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":["Performance","Teamwork","Communication","Leadership"],"seriesKeys":null}
+
+User: "Show market share breakdown by company as proportional rectangles"
+Response: {"chartType":"treemap","title":"Market Share by Company","description":"Treemap showing proportional market share of each company","filters":[],"groupBy":"Company","operation":"sum","metricColumn":"MarketShare","sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Show distribution of ages"
+Response: {"chartType":"histogram","title":"Age Distribution","description":"Histogram showing frequency distribution of ages","filters":[],"groupBy":null,"operation":null,"metricColumn":"Age","sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":10,"radarIndicators":null,"seriesKeys":null}
+
+User: "Show boxplot of salaries by department"
+Response: {"chartType":"boxplot","title":"Salary Distribution by Department","description":"Box plot showing salary quartiles and outliers per department","filters":[],"groupBy":"Department","operation":null,"metricColumn":"Salary","sortOrder":null,"xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Show relationship between experience, salary and performance score"
+Response: {"chartType":"bubble","title":"Experience vs Salary vs Performance","description":"Bubble chart showing correlation with bubble size representing performance","filters":[],"groupBy":null,"operation":null,"metricColumn":null,"sortOrder":null,"xColumn":"Experience","yColumn":"Salary","sizeColumn":"PerformanceScore","rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
+
+User: "Show conversion funnel from visitors to purchases"
+Response: {"chartType":"funnel","title":"Sales Conversion Funnel","description":"Funnel chart showing conversion rates through sales stages","filters":[],"groupBy":"Stage","operation":"sum","metricColumn":"Count","sortOrder":"desc","xColumn":null,"yColumn":null,"sizeColumn":null,"rowColumn":null,"colColumn":null,"binCount":null,"radarIndicators":null,"seriesKeys":null}
 
 Now generate the JSON for the user's request:`;
 };
@@ -324,8 +370,39 @@ export const processChartConfig = (
   
   // Apply filters
   const filteredRows = applyFilters(rows, config.filters);
+
+  // Scatter: return raw rows with x/y preserved in originalData
+  if (config.chartType === "scatter" && config.xColumn && config.yColumn) {
+    return filteredRows.map((row) => ({
+      label: String(row[config.groupBy || config.xColumn!] ?? ""),
+      value: Number(row[config.yColumn!] || 0),
+      originalData: row,
+    }));
+  }
+
+  // Stacked bar: group by label column, preserve all series key values in originalData
+  if (config.chartType === "stackedbar" && config.seriesKeys && config.seriesKeys.length > 0 && config.groupBy) {
+    const groups: Record<string, Record<string, any>[]> = {};
+    filteredRows.forEach((row) => {
+      const key = String(row[config.groupBy!] ?? "Unknown");
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+
+    return Object.entries(groups).map(([label, groupRows]) => {
+      const aggregated: Record<string, any> = {};
+      for (const key of config.seriesKeys!) {
+        aggregated[key] = groupRows.reduce((sum, r) => sum + Number(r[key] || 0), 0);
+      }
+      return {
+        label,
+        value: aggregated[config.seriesKeys![0]] ?? 0,
+        originalData: aggregated,
+      };
+    });
+  }
   
-  // Apply aggregation
+  // Default: apply standard aggregation
   const aggregatedData = aggregateData(
     filteredRows,
     config.groupBy,

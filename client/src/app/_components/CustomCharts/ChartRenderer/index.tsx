@@ -16,7 +16,24 @@ import { PieChart } from "../PieChart";
 import { BarChart } from "../BarChart";
 import { LineChart } from "../LineChart";
 import { TableChart } from "../TableChart";
-import type { ChartInfo } from "@/types/chart";
+import { DonutChart } from "../DonutChart";
+import { AreaChart } from "../AreaChart";
+import { StackedBarChart } from "../StackedBarChart";
+import { ScatterChart } from "../ScatterChart";
+import { HeatmapChart } from "../HeatmapChart";
+import { RadarChart } from "../RadarChart";
+import { TreemapChart } from "../TreemapChart";
+import { HistogramChart } from "../HistogramChart";
+import { BoxPlotChart } from "../BoxPlotChart";
+import { BubbleChart } from "../BubbleChart";
+import { FunnelChart } from "../FunnelChart";
+import type {
+  ChartInfo,
+  ScatterDataPoint,
+  HeatmapDataPoint,
+  BoxPlotDataPoint,
+  BubbleDataPoint,
+} from "@/types/chart";
 import styles from "./ChartRenderer.module.scss";
 
 // Debounce delay for saving styling (2 seconds)
@@ -160,9 +177,10 @@ export const ChartRenderer = ({
   }, [messageId, chartId, updateMessageStyling, updateChartStyling]);
 
   // Debounced thumbnail capture (after styling changes settle)
+  // Always capture when chartId exists - needed for canvas element sync
   const debouncedThumbnailCapture = useCallback(() => {
-    // Only capture if chart is favorited and we have chartId
-    if (!isFavorite || !chartId || !chartContainerRef.current) return;
+    // Only capture if we have chartId (canvas elements may reference this chart)
+    if (!chartId || !chartContainerRef.current) return;
 
     if (thumbnailDebounceRef.current) {
       clearTimeout(thumbnailDebounceRef.current);
@@ -201,7 +219,7 @@ export const ChartRenderer = ({
         );
       }
     }, THUMBNAIL_DEBOUNCE_DELAY);
-  }, [isFavorite, chartId, updateChartInCache]);
+  }, [chartId, updateChartInCache]);
 
   // Cleanup thumbnail debounce on unmount
   useEffect(() => {
@@ -358,6 +376,283 @@ export const ChartRenderer = ({
           />
         );
 
+      case "donut":
+        return (
+          <DonutChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showPercentage={true}
+            onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "area":
+        return (
+          <AreaChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showDots={true}
+            showGrid={true}
+            curved={true}
+            onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "stackedbar":
+        return (
+          <StackedBarChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            orientation="vertical"
+            showValues={false}
+            seriesKeys={config.seriesKeys}
+            onDataPointClick={onDataPointClick}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "scatter":
+        // Convert ChartDataPoint[] to ScatterDataPoint[] for scatter chart
+        const scatterData: ScatterDataPoint[] = processedData.map((d) => ({
+          x: d.originalData?.[config.xColumn || ""] ?? d.value,
+          y: d.originalData?.[config.yColumn || ""] ?? d.value,
+          label: d.label,
+          originalData: d.originalData,
+        }));
+
+        return (
+          <ScatterChart
+            data={scatterData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showGrid={true}
+            xAxisLabel={config.xColumn || undefined}
+            yAxisLabel={config.yColumn || undefined}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "heatmap":
+        // Convert ChartDataPoint[] to HeatmapDataPoint[]
+        const heatmapData: HeatmapDataPoint[] = processedData.map((d) => ({
+          row:
+            d.originalData?.[config.rowColumn || config.groupBy || ""] ??
+            d.label,
+          col:
+            d.originalData?.[config.colColumn || config.metricColumn || ""] ??
+            "",
+          value: d.value,
+        }));
+
+        return (
+          <HeatmapChart
+            data={heatmapData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showGrid={true}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "radar":
+        return (
+          <RadarChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showGrid={true}
+            indicators={config.radarIndicators}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "treemap":
+        return (
+          <TreemapChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showValues={true}
+            distributed={true}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "histogram":
+        // Extract numeric values for histogram
+        const histogramValues: number[] = processedData.map((d) => d.value);
+
+        return (
+          <HistogramChart
+            data={histogramValues}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            binCount={config.binCount || 10}
+            showGrid={true}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "boxplot":
+        // Convert to BoxPlotDataPoint - requires pre-computed stats in originalData
+        const boxPlotData: BoxPlotDataPoint[] = processedData.map((d) => ({
+          category: d.label,
+          min: d.originalData?.min ?? d.value * 0.5,
+          q1: d.originalData?.q1 ?? d.value * 0.75,
+          median: d.originalData?.median ?? d.value,
+          q3: d.originalData?.q3 ?? d.value * 1.25,
+          max: d.originalData?.max ?? d.value * 1.5,
+          outliers: d.originalData?.outliers,
+        }));
+
+        return (
+          <BoxPlotChart
+            data={boxPlotData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            horizontal={false}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "bubble":
+        // Convert to BubbleDataPoint
+        const bubbleData: BubbleDataPoint[] = processedData.map((d) => ({
+          x: d.originalData?.[config.xColumn || ""] ?? d.value,
+          y: d.originalData?.[config.yColumn || ""] ?? d.value,
+          z: d.originalData?.[config.sizeColumn || ""] ?? Math.abs(d.value),
+          label: d.label,
+          originalData: d.originalData,
+        }));
+
+        return (
+          <BubbleChart
+            data={bubbleData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showGrid={true}
+            xAxisLabel={config.xColumn || undefined}
+            yAxisLabel={config.yColumn || undefined}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
+      case "funnel":
+        return (
+          <FunnelChart
+            data={processedData}
+            title={config.title}
+            description={config.description}
+            colorScheme={effectiveColorScheme}
+            showLegend={showLegend}
+            animate={animate}
+            showValues={true}
+            showPercentage={true}
+            onStylingChange={handleStylingChange}
+            initialTypography={localTypography}
+            chartInfo={chartInfo}
+            isFavorite={isFavorite}
+            isSaving={isSaving}
+            onToggleFavorite={onToggleFavorite}
+            hideSaveButton={hideSaveButton}
+          />
+        );
+
       default:
         return (
           <div className={styles.unsupportedChart}>
@@ -455,6 +750,152 @@ export const renderChartByType = (
           rows={rows}
           title={title}
           description={description}
+        />
+      );
+    case "donut":
+      return (
+        <DonutChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "area":
+      return (
+        <AreaChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "stackedbar":
+      return (
+        <StackedBarChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "scatter":
+      const scatterDataSimple: ScatterDataPoint[] = data.map((d) => ({
+        x: d.value,
+        y: d.value,
+        label: d.label,
+      }));
+      return (
+        <ScatterChart
+          data={scatterDataSimple}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "heatmap":
+      const heatmapDataSimple: HeatmapDataPoint[] = data.map((d, i) => ({
+        row: d.label,
+        col: `Col ${i + 1}`,
+        value: d.value,
+      }));
+      return (
+        <HeatmapChart
+          data={heatmapDataSimple}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "radar":
+      return (
+        <RadarChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "treemap":
+      return (
+        <TreemapChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "histogram":
+      const histValues: number[] = data.map((d) => d.value);
+      return (
+        <HistogramChart
+          data={histValues}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "boxplot":
+      const boxData: BoxPlotDataPoint[] = data.map((d) => ({
+        category: d.label,
+        min: d.value * 0.5,
+        q1: d.value * 0.75,
+        median: d.value,
+        q3: d.value * 1.25,
+        max: d.value * 1.5,
+      }));
+      return (
+        <BoxPlotChart
+          data={boxData}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "bubble":
+      const bubbleDataSimple: BubbleDataPoint[] = data.map((d) => ({
+        x: d.value,
+        y: d.value,
+        z: Math.abs(d.value),
+        label: d.label,
+      }));
+      return (
+        <BubbleChart
+          data={bubbleDataSimple}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
+        />
+      );
+    case "funnel":
+      return (
+        <FunnelChart
+          data={data}
+          title={title}
+          description={description}
+          colorScheme={colorScheme}
+          animate={animate}
+          showLegend={showLegend}
         />
       );
     default:

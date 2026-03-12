@@ -2,8 +2,31 @@
 
 import React, { useRef, useCallback, memo, useState, useEffect } from "react";
 import Moveable from "react-moveable";
-import { CanvasElement as CanvasElementType } from "@/store/useCanvasEditorStore";
+import {
+  CanvasElement as CanvasElementType,
+  TextElement,
+} from "@/types/canvas";
 import styles from "../CanvasWorkspace.module.scss";
+
+// Helper to get text content from either legacy format or new textConfig
+const getTextContent = (element: CanvasElementType): string => {
+  if (element.type === "text") {
+    const textEl = element as TextElement;
+    if (textEl.textConfig?.content) {
+      return textEl.textConfig.content;
+    }
+  }
+  // Legacy fallback
+  if (typeof element.data === "string") {
+    return element.data;
+  }
+  return "Text";
+};
+
+// Helper to check if element is text element
+const isTextElement = (element: CanvasElementType): element is TextElement => {
+  return element.type === "text";
+};
 
 interface CanvasElementProps {
   element: CanvasElementType;
@@ -13,6 +36,7 @@ interface CanvasElementProps {
   onPositionChange: (id: string, x: number, y: number) => void;
   onSizeChange: (id: string, width: number, height: number) => void;
   onTextChange: (id: string, text: string) => void;
+  onRotationChange: (id: string, rotation: number) => void;
   canvasPadding: number;
 }
 
@@ -44,20 +68,35 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
   onPositionChange,
   onSizeChange,
   onTextChange,
+  onRotationChange,
   canvasPadding,
 }) => {
   const targetRef = useRef<HTMLDivElement>(null);
   const moveableRef = useRef<Moveable>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(element.data || "Text");
+  const [editText, setEditText] = useState(getTextContent(element));
 
   // Sync editText with element data when it changes externally
   useEffect(() => {
     if (!isEditing) {
-      setEditText(element.data || "Text");
+      setEditText(getTextContent(element));
     }
-  }, [element.data, isEditing]);
+  }, [element, isEditing]);
+
+  // Update Moveable rect when element position/size/rotation changes
+  useEffect(() => {
+    if (isSelected && moveableRef.current) {
+      moveableRef.current.updateRect();
+    }
+  }, [
+    element.x,
+    element.y,
+    element.width,
+    element.height,
+    element.rotation,
+    isSelected,
+  ]);
 
   // Focus textarea when editing starts
   useEffect(() => {
@@ -92,16 +131,17 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
   // Handle text input blur - save text
   const handleTextBlur = useCallback(() => {
     setIsEditing(false);
-    if (editText !== element.data) {
+    const currentContent = getTextContent(element);
+    if (editText !== currentContent) {
       onTextChange(element.id, editText);
     }
-  }, [editText, element.data, element.id, onTextChange]);
+  }, [editText, element, onTextChange]);
 
   // Handle keyboard events in text input
   const handleTextKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
-        setEditText(element.data || "Text");
+        setEditText(getTextContent(element));
         setIsEditing(false);
       }
       // Prevent delete shortcut from deleting element while editing
@@ -109,7 +149,7 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
         e.stopPropagation();
       }
     },
-    [element.data],
+    [element],
   );
 
   // Get computed styles for text
@@ -127,8 +167,8 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
           element.type === "text" ? styles.textContainer : ""
         }`}
         style={{
-          // GPU-accelerated positioning using transform
-          transform: `translate3d(${element.x}px, ${element.y}px, 0)`,
+          // GPU-accelerated positioning using transform with rotation
+          transform: `translate3d(${element.x}px, ${element.y}px, 0) rotate(${element.rotation || 0}deg)`,
           width: element.width,
           height: element.height,
           // Using transform instead of left/top for GPU acceleration
@@ -141,8 +181,13 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
         onDoubleClick={handleDoubleClick}
       >
         <div className={styles.elementContent}>
-          {element.type === "chart" && element.chartConfig ? (
-            <span>Chart</span>
+          {element.type === "chart" && element.chartConfig?.imageBase64 ? (
+            <img
+              src={element.chartConfig.imageBase64}
+              alt={element.chartConfig.chartTitle || "Chart"}
+              className={styles.imageElement}
+              draggable={false}
+            />
           ) : element.type === "chart" ? (
             <div className={styles.chartPlaceholder}>
               <span>Chart</span>
@@ -198,7 +243,7 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
                           : "flex-start",
                   }}
                 >
-                  {element.data || "Text"}
+                  {getTextContent(element)}
                 </div>
               )}
             </>
@@ -218,9 +263,14 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
           resizable={true}
           throttleResize={0}
           keepRatio={false}
-          renderDirections={["nw", "ne", "sw", "se"]}
+          // All 8 directions: corners + edges for cropping
+          renderDirections={["nw", "n", "ne", "e", "se", "s", "sw", "w"]}
           // Edge configuration for better visual feedback
           edge={false}
+          // Rotation configuration
+          rotatable={true}
+          throttleRotate={0}
+          rotationPosition="top"
           // Zoom compensation
           zoom={1}
           // Origin display
@@ -245,6 +295,8 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
               const y = Math.max(canvasPadding, parseFloat(match[2]));
               onPositionChange(element.id, x, y);
             }
+            // Update rect to fix visual glitch
+            setTimeout(() => moveableRef.current?.updateRect(), 0);
           }}
           // Resize events - transient updates
           onResize={({ target, width, height, drag }) => {
@@ -268,6 +320,26 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
               onPositionChange(element.id, x, y);
             }
             onSizeChange(element.id, Math.max(20, width), Math.max(20, height));
+            // Update rect to fix visual glitch
+            setTimeout(() => moveableRef.current?.updateRect(), 0);
+          }}
+          // Rotation events
+          onRotate={({ target, transform }) => {
+            // Apply rotation transform directly to DOM
+            target.style.transform = transform;
+          }}
+          onRotateEnd={({ target }) => {
+            // Parse rotation from transform and update store
+            const transform = target.style.transform;
+            const rotateMatch = transform.match(/rotate\(([^)]+)deg\)/);
+            const rotation = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+            // Normalize rotation to 0-360
+            const normalizedRotation = ((rotation % 360) + 360) % 360;
+            onRotationChange(element.id, normalizedRotation);
+            // Update rect to fix visual glitch
+            setTimeout(() => {
+              moveableRef.current?.updateRect();
+            }, 0);
           }}
           // Styling for handles
           className={styles.moveable}
@@ -279,6 +351,24 @@ const CanvasElementComponent: React.FC<CanvasElementProps> = ({
 
 // Memoized version - only re-renders when props change
 export const CanvasElement = memo(CanvasElementComponent, (prev, next) => {
+  // Type-safe property access for different element types
+  const prevChartConfig =
+    prev.element.type === "chart"
+      ? (prev.element as any).chartConfig
+      : undefined;
+  const nextChartConfig =
+    next.element.type === "chart"
+      ? (next.element as any).chartConfig
+      : undefined;
+  const prevImageSrc =
+    prev.element.type === "image"
+      ? (prev.element as any).imageConfig?.src
+      : undefined;
+  const nextImageSrc =
+    next.element.type === "image"
+      ? (next.element as any).imageConfig?.src
+      : undefined;
+
   return (
     prev.element.id === next.element.id &&
     prev.element.x === next.element.x &&
@@ -295,8 +385,9 @@ export const CanvasElement = memo(CanvasElementComponent, (prev, next) => {
     prev.element.style?.fontWeight === next.element.style?.fontWeight &&
     prev.element.style?.fontStyle === next.element.style?.fontStyle &&
     prev.element.style?.textType === next.element.style?.textType &&
-    prev.element.chartConfig === next.element.chartConfig &&
-    prev.element.imageConfig?.src === next.element.imageConfig?.src &&
+    prev.element.rotation === next.element.rotation &&
+    prevChartConfig === nextChartConfig &&
+    prevImageSrc === nextImageSrc &&
     prev.isSelected === next.isSelected &&
     prev.zoom === next.zoom
   );

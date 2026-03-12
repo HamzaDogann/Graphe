@@ -28,6 +28,20 @@ export interface AIChartConfig {
   // Optional styling from AI
   colorScheme?: string;
   sortOrder?: "asc" | "desc" | null;
+  // Scatter-specific: two numeric columns for x/y axes
+  xColumn?: string | null;
+  yColumn?: string | null;
+  // Stacked bar: keys for each segment in the stack
+  seriesKeys?: string[];
+  // Bubble chart: size column for bubble radius
+  sizeColumn?: string | null;
+  // Heatmap: row and column category columns
+  rowColumn?: string | null;
+  colColumn?: string | null;
+  // Histogram: number of bins
+  binCount?: number;
+  // Radar: indicator columns for each axis
+  radarIndicators?: string[];
 }
 
 // Processed data point for charts
@@ -123,6 +137,124 @@ export interface TableChartProps {
   isSaving?: boolean;
   onToggleFavorite?: (thumbnail?: string) => void;
   chartInfo?: ChartInfo;
+}
+
+// Donut Chart specific props (similar to Pie)
+export interface DonutChartProps extends BaseChartProps {
+  innerRadius?: number;
+  showPercentage?: boolean;
+}
+
+// Area Chart specific props (similar to Line)
+export interface AreaChartProps extends BaseChartProps {
+  showDots?: boolean;
+  showGrid?: boolean;
+  curved?: boolean;
+}
+
+// Stacked Bar Chart specific props
+export interface StackedBarChartProps extends BaseChartProps {
+  orientation?: "vertical" | "horizontal";
+  showValues?: boolean;
+  // Data format: each ChartDataPoint.originalData should contain the segment values
+  // e.g. { label: "2024", value: 100, originalData: { "Product A": 40, "Product B": 60 } }
+  seriesKeys?: string[]; // The keys for each stacked segment
+}
+
+// Scatter data point (needs x and y)
+export interface ScatterDataPoint {
+  x: number;
+  y: number;
+  label?: string;
+  color?: string;
+  originalData?: Record<string, any>;
+}
+
+// Scatter Chart specific props
+export interface ScatterChartProps extends Omit<BaseChartProps, 'data'> {
+  data: ScatterDataPoint[];
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  showGrid?: boolean;
+  dotSize?: number;
+}
+
+// Heatmap data point (row, col, value)
+export interface HeatmapDataPoint {
+  row: string;
+  col: string;
+  value: number;
+}
+
+// Heatmap Chart specific props
+export interface HeatmapChartProps extends Omit<BaseChartProps, 'data'> {
+  data: HeatmapDataPoint[];
+  showGrid?: boolean;
+  minColor?: string;
+  maxColor?: string;
+}
+
+// Radar Chart specific props
+export interface RadarChartProps extends BaseChartProps {
+  indicators?: string[]; // Labels for radar axes
+  showGrid?: boolean;
+  fillOpacity?: number;
+}
+
+// Treemap Chart specific props
+export interface TreemapChartProps extends BaseChartProps {
+  showValues?: boolean;
+  distributed?: boolean; // Different color for each block
+}
+
+// Histogram Chart specific props
+export interface HistogramChartProps extends Omit<BaseChartProps, 'data'> {
+  data: number[]; // Raw numeric values to bin
+  binCount?: number;
+  showGrid?: boolean;
+}
+
+// BoxPlot data point
+export interface BoxPlotDataPoint {
+  category: string;
+  min: number;
+  q1: number;
+  median: number;
+  q3: number;
+  max: number;
+  outliers?: number[];
+}
+
+// BoxPlot Chart specific props
+export interface BoxPlotChartProps extends Omit<BaseChartProps, 'data'> {
+  data: BoxPlotDataPoint[];
+  horizontal?: boolean;
+  showOutliers?: boolean;
+}
+
+// Bubble data point (x, y, size)
+export interface BubbleDataPoint {
+  x: number;
+  y: number;
+  z: number; // Bubble size
+  label?: string;
+  originalData?: Record<string, any>;
+}
+
+// Bubble Chart specific props
+export interface BubbleChartProps extends Omit<BaseChartProps, 'data'> {
+  data: BubbleDataPoint[];
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  showGrid?: boolean;
+  minBubbleSize?: number;
+  maxBubbleSize?: number;
+}
+
+// Funnel Chart specific props
+export interface FunnelChartProps extends BaseChartProps {
+  showValues?: boolean;
+  showPercentage?: boolean;
 }
 
 // Default color palette for charts

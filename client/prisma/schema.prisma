@@ -140,7 +140,7 @@ model Message {
 model Chart {
   id          String  @id @default(uuid())
   userId      String
-  type        String // "pie" | "bar" | "line" | "table"
+  type        String // "pie" | "bar" | "line" | "table" | "donut" | "area" | "stackedbar" | "scatter"
   title       String
   description String? @db.Text
 

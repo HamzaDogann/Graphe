@@ -6,11 +6,13 @@
  * - Cache chart details for instant navigation
  * - Sync styling changes between message charts and charts page
  * - Optimistic UI updates
+ * - Sync chart thumbnails to canvas elements
  */
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { ChartStyling } from "@/types/chat";
+import { useCanvasEditorStore } from "./useCanvasEditorStore";
 
 // ===== TYPES =====
 
@@ -400,6 +402,11 @@ export const useChartsStore = create<ChartsStore>()(
             ),
           };
         });
+        
+        // Sync thumbnail to canvas elements if thumbnail was updated
+        if (updates.thumbnail) {
+          useCanvasEditorStore.getState().updateChartThumbnails(chartId, updates.thumbnail);
+        }
       },
 
       removeChartFromCache: (chartId: string) => {

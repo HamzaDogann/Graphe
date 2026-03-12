@@ -16,7 +16,10 @@ export interface ChartDataPoint {
   value: number;
   count?: number; // How many rows contributed to this value
   percentage?: number; // For pie charts
+  originalData?: Record<string, any>; // Raw row data for scatter/stackedbar
 }
+
+import type { ChartType as ConstChartType } from "@/constants/chartTypes";
 
 /**
  * Chart styling configuration
@@ -37,7 +40,7 @@ export interface ChartStyling {
  * Chart configuration from AI
  */
 export interface ChartConfig {
-  chartType: "pie" | "bar" | "line" | "table";
+  chartType: ConstChartType;
   title: string;
   groupBy?: string;
   operation?: "sum" | "count" | "avg" | "min" | "max";
@@ -47,6 +50,20 @@ export interface ChartConfig {
     operator: "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "contains";
     value: unknown;
   }>;
+  // Scatter-specific: x and y axis columns
+  xColumn?: string;
+  yColumn?: string;
+  // Stacked bar: keys for each segment in the stack
+  seriesKeys?: string[];
+  // Bubble-specific: size dimension column
+  sizeColumn?: string;
+  // Heatmap-specific: row and column dimensions
+  rowColumn?: string;
+  colColumn?: string;
+  // Histogram-specific: number of bins
+  binCount?: number;
+  // Radar-specific: indicators (metric columns to compare)
+  radarIndicators?: string[];
 }
 
 /**
@@ -62,7 +79,7 @@ export interface ChartDatasetInfo {
  * Complete chart data stored in Message.chartData
  */
 export interface StoredChartData {
-  type: "pie" | "bar" | "line" | "table";
+  type: ConstChartType;
   title: string;
   description?: string; // AI-generated description
   createdAt?: string; // ISO date string
@@ -247,6 +264,15 @@ export const storedToRenderData = (stored: StoredChartData): ChartRenderData => 
     groupBy: stored.config?.groupBy || null,
     operation: stored.config?.operation || null,
     metricColumn: stored.config?.metricColumn || null,
+    xColumn: stored.config?.xColumn || null,
+    yColumn: stored.config?.yColumn || null,
+    seriesKeys: stored.config?.seriesKeys,
+    // New chart type config fields
+    sizeColumn: stored.config?.sizeColumn || null,
+    rowColumn: stored.config?.rowColumn || null,
+    colColumn: stored.config?.colColumn || null,
+    binCount: stored.config?.binCount || null,
+    radarIndicators: stored.config?.radarIndicators || null,
   };
 
   const processedData: RenderChartDataPoint[] = stored.data.map((point, index) => ({
@@ -254,6 +280,7 @@ export const storedToRenderData = (stored: StoredChartData): ChartRenderData => 
     value: point.value,
     percentage: point.percentage,
     color: stored.styling?.colors?.[index % (stored.styling.colors?.length || 1)],
+    originalData: point.originalData,
   }));
 
   return {

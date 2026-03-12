@@ -867,6 +867,13 @@ export const useChatStore = create<ChatStore>()(
         renderData: ChartRenderData,
         datasetInfo?: ChartDatasetInfo
       ): StoredChartData => {
+        // Chart types that need to preserve originalData
+        const typesWithOriginalData = [
+          "scatter", "stackedbar", "heatmap", "radar", 
+          "histogram", "boxplot", "bubble"
+        ];
+        const needsOriginalData = typesWithOriginalData.includes(renderData.type);
+        
         return {
           type: renderData.type,
           title: renderData.config.title,
@@ -877,6 +884,7 @@ export const useChatStore = create<ChatStore>()(
             label: point.label,
             value: point.value,
             percentage: point.percentage,
+            originalData: needsOriginalData ? point.originalData : undefined,
           })),
           config: {
             chartType: renderData.config.chartType,
@@ -896,6 +904,15 @@ export const useChatStore = create<ChatStore>()(
                 | "contains",
               value: f.value,
             })),
+            xColumn: renderData.config.xColumn || undefined,
+            yColumn: renderData.config.yColumn || undefined,
+            seriesKeys: renderData.config.seriesKeys,
+            // New chart type config fields
+            sizeColumn: renderData.config.sizeColumn || undefined,
+            rowColumn: renderData.config.rowColumn || undefined,
+            colColumn: renderData.config.colColumn || undefined,
+            binCount: renderData.config.binCount || undefined,
+            radarIndicators: renderData.config.radarIndicators || undefined,
           },
           styling: DEFAULT_STYLING,
         };

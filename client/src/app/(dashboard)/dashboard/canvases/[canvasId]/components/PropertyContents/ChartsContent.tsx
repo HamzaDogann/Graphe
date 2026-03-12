@@ -42,22 +42,22 @@ export const ChartsContent = () => {
     router.push(`/dashboard/charts/${chartId}`);
   };
 
-  // Handle Add to Canvas - add chart thumbnail as image element
+  // Handle Add to Canvas - add chart thumbnail as chart element
   const handleAddToCanvas = (chart: ChartSummary) => {
     if (!chart.thumbnail) return;
 
     const newElement = {
-      id: `image-${Date.now()}`,
-      type: "image" as const,
+      id: `chart-${Date.now()}`,
+      type: "chart" as const,
       x: 50,
       y: 50 + elements.length * 20, // Offset each new element slightly
       width: 400,
       height: 300,
       zIndex: elements.length + 1,
-      imageConfig: {
-        src: chart.thumbnail,
-        alt: chart.title,
+      chartConfig: {
+        imageBase64: chart.thumbnail,
         chartId: chart.id,
+        chartTitle: chart.title,
       },
     };
 

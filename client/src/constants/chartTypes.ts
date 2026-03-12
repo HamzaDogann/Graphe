@@ -12,6 +12,17 @@ export const SUPPORTED_CHART_TYPES = [
   "bar",
   "line",
   "table",
+  "donut",
+  "area",
+  "stackedbar",
+  "scatter",
+  "heatmap",
+  "radar",
+  "treemap",
+  "histogram",
+  "boxplot",
+  "bubble",
+  "funnel",
 ] as const;
 
 // Type derived from the array
@@ -38,6 +49,61 @@ export const CHART_TYPE_INFO: Record<ChartType, { label: string; description: st
     label: "Data Table",
     description: "Displays raw or aggregated data in tabular format",
     icon: "table",
+  },
+  donut: {
+    label: "Donut Chart",
+    description: "Shows proportional distribution with a hollow center",
+    icon: "circle-dot",
+  },
+  area: {
+    label: "Area Chart",
+    description: "Shows trends with filled area under the curve",
+    icon: "area-chart",
+  },
+  stackedbar: {
+    label: "Stacked Bar Chart",
+    description: "Compares category segments stacked in bars",
+    icon: "bar-chart-horizontal",
+  },
+  scatter: {
+    label: "Scatter Plot",
+    description: "Shows correlation between two numeric variables",
+    icon: "scatter-chart",
+  },
+  heatmap: {
+    label: "Heatmap",
+    description: "Shows data intensity using color gradients across a matrix",
+    icon: "grid",
+  },
+  radar: {
+    label: "Radar Chart",
+    description: "Compares multiple variables on a radial axis",
+    icon: "activity",
+  },
+  treemap: {
+    label: "Treemap",
+    description: "Shows hierarchical data as nested rectangles by size",
+    icon: "layout-grid",
+  },
+  histogram: {
+    label: "Histogram",
+    description: "Shows frequency distribution of numeric data",
+    icon: "bar-chart-2",
+  },
+  boxplot: {
+    label: "Box Plot",
+    description: "Shows statistical distribution with quartiles and outliers",
+    icon: "box-select",
+  },
+  bubble: {
+    label: "Bubble Chart",
+    description: "Scatter plot with a third dimension shown as bubble size",
+    icon: "circle",
+  },
+  funnel: {
+    label: "Funnel Chart",
+    description: "Shows stages in a sequential process with drop-off rates",
+    icon: "filter",
   },
 };
 

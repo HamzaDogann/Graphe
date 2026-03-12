@@ -88,14 +88,16 @@ export const CanvasToolbar = () => {
       width: TEXT_WIDTH,
       height: TEXT_HEIGHT,
       zIndex: maxZIndex + 1,
-      data: "Text",
-      style: {
-        fontSize: 16,
-        color: "#000000",
+      textConfig: {
+        content: "Text",
         textType: "paragraph" as const,
-        textAlign: "left" as const,
+        fontSize: 16,
+        fontFamily: "Inter",
         fontWeight: "normal" as const,
         fontStyle: "normal" as const,
+        textDecoration: "none" as const,
+        color: "#000000",
+        textAlign: "left" as const,
       },
     };
     addElement(newText);
@@ -175,8 +177,8 @@ export const CanvasToolbar = () => {
             className={styles.toolButton}
             onClick={zoomOut}
             aria-label="Zoom out"
-            title="Zoom out"
-            disabled={zoom <= 50}
+            title="Zoom out (Ctrl + -)"
+            disabled={zoom <= 25}
           >
             <ZoomOut size={18} />
           </button>
@@ -187,8 +189,8 @@ export const CanvasToolbar = () => {
             className={styles.toolButton}
             onClick={zoomIn}
             aria-label="Zoom in"
-            title="Zoom in"
-            disabled={zoom >= 200}
+            title="Zoom in (Ctrl + +)"
+            disabled={zoom >= 400}
           >
             <ZoomIn size={18} />
           </button>
