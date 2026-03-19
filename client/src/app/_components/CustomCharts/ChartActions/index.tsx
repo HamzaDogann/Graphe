@@ -18,6 +18,7 @@ import { ChartInfoTooltip } from "./components/ChartInfoTooltip";
 export const ChartActions = memo((props: ChartActionsProps) => {
   const { state, refs, actions } = useChartActionLogic(props);
   const resolvedSaveHandler = props.onSave || props.onToggleFavorite;
+  const resolvedShowInfo = props.showInfo ?? !!props.chartInfo;
 
   const [isMounted, setIsMounted] = useState(false);
   const [activeColorPicker, setActiveColorPicker] =
@@ -134,6 +135,7 @@ export const ChartActions = memo((props: ChartActionsProps) => {
       <ActionButtons
         {...props}
         onSave={resolvedSaveHandler}
+        showInfo={resolvedShowInfo}
         togglePaletteMenu={actions.togglePaletteMenu}
         toggleTypographyMenu={actions.toggleTypographyMenu}
         toggleInfoTooltip={actions.toggleInfoTooltip}
