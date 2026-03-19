@@ -1,0 +1,2 @@
+export const DEBOUNCE_DELAY = 2000;
+export const THUMBNAIL_DEBOUNCE_DELAY = 3000;

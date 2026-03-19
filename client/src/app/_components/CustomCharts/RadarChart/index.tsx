@@ -57,15 +57,29 @@ export const RadarChart = ({
       return { series: [], categories: [] };
     }
 
-    // Use indicators if provided, otherwise use data labels
-    const cats = indicators || data.map((d) => d.label);
-    const values = data.map((d) => d.value);
+    // Use configured indicators when available to keep axis order stable.
+    let cats: string[] = [];
+    if (indicators && indicators.length > 0) {
+      cats = indicators;
+    } else {
+      const allIndicators = new Set<string>();
+      data.forEach((d) => {
+        Object.keys(d.indicators).forEach((key) => allIndicators.add(key));
+      });
+      cats = Array.from(allIndicators).sort();
+    }
+
+    // Build series for each person/category
+    const radarSeries = data.map((d) => ({
+      name: d.name,
+      data: cats.map((cat) => d.indicators[cat] ?? 0),
+    }));
 
     return {
-      series: [{ name: title, data: values }],
+      series: radarSeries,
       categories: cats,
     };
-  }, [data, title, indicators]);
+  }, [data, indicators]);
 
   const options: ApexCharts.ApexOptions = useMemo(
     () => ({

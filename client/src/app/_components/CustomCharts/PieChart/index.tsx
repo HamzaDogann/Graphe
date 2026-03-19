@@ -71,7 +71,7 @@ export const PieChart = ({
   const options: ApexCharts.ApexOptions = useMemo(
     () => ({
       chart: {
-        type: "donut",
+        type: "pie",
         animations: {
           enabled: animate,
           dynamicAnimation: {
@@ -335,7 +335,7 @@ export const PieChart = ({
           <Chart
             options={options}
             series={series}
-            type="donut"
+            type="pie"
             height={height}
             width="100%"
           />

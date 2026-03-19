@@ -380,6 +380,69 @@ export const processChartConfig = (
     }));
   }
 
+  // Radar: group by entity and aggregate each indicator into originalData.
+  // This is required so each radar axis gets its own value instead of repeating one value.
+  if (
+    config.chartType === "radar" &&
+    config.groupBy &&
+    config.radarIndicators &&
+    config.radarIndicators.length > 0
+  ) {
+    const groups: Record<string, Record<string, any>[]> = {};
+    filteredRows.forEach((row) => {
+      const key = String(row[config.groupBy!] ?? "Unknown");
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+
+    const op = config.operation || "avg";
+
+    return Object.entries(groups).map(([label, groupRows]) => {
+      const aggregatedIndicators: Record<string, number> = {};
+
+      for (const indicator of config.radarIndicators!) {
+        const values = groupRows
+          .map((r) => Number(r[indicator]))
+          .filter((v) => !isNaN(v));
+
+        let aggregatedValue = 0;
+        if (values.length > 0) {
+          switch (op) {
+            case "count":
+              aggregatedValue = values.length;
+              break;
+            case "sum":
+              aggregatedValue = values.reduce((sum, v) => sum + v, 0);
+              break;
+            case "avg":
+              aggregatedValue =
+                values.reduce((sum, v) => sum + v, 0) / values.length;
+              break;
+            case "min":
+              aggregatedValue = Math.min(...values);
+              break;
+            case "max":
+              aggregatedValue = Math.max(...values);
+              break;
+            default:
+              aggregatedValue =
+                values.reduce((sum, v) => sum + v, 0) / values.length;
+          }
+        }
+
+        aggregatedIndicators[indicator] =
+          Math.round(aggregatedValue * 100) / 100;
+      }
+
+      return {
+        label,
+        // Keep a representative numeric value for generic chart paths.
+        value: aggregatedIndicators[config.radarIndicators![0]] ?? 0,
+        originalData: aggregatedIndicators,
+      };
+    });
+  }
+
   // Stacked bar: group by label column, preserve all series key values in originalData
   if (config.chartType === "stackedbar" && config.seriesKeys && config.seriesKeys.length > 0 && config.groupBy) {
     const groups: Record<string, Record<string, any>[]> = {};

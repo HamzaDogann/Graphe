@@ -11,6 +11,37 @@ import {
 } from "lucide-react";
 import styles from "../ChartActions.module.scss";
 
+const fallbackScreenshot = async (button: HTMLButtonElement) => {
+  try {
+    const html2canvas = (await import("html2canvas")).default;
+    const container =
+      button.closest('[class*="chartWrapper"]') ||
+      button.closest('[class*="chartRenderer"]') ||
+      button.closest('[class*="chartContent"]');
+
+    const target =
+      (container?.querySelector(".apexcharts-canvas") as HTMLElement | null) ||
+      (container as HTMLElement | null);
+
+    if (!target) return;
+
+    const canvas = await html2canvas(target, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
+
+    const link = document.createElement("a");
+    link.download = "chart_screenshot.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  } catch (error) {
+    console.error("Failed to capture screenshot:", error);
+  }
+};
+
 interface ActionButtonsProps {
   onScreenshot?: () => void;
   onSave?: () => void;
@@ -67,6 +98,16 @@ export const ActionButtons = ({
   isSaving = false,
   refs,
 }: ActionButtonsProps) => {
+  const handleScreenshotClick = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    if (onScreenshot) {
+      onScreenshot();
+      return;
+    }
+    await fallbackScreenshot(event.currentTarget);
+  };
+
   return (
     <div
       className={`${styles.actionButtons} ${orientation === "horizontal" ? styles.horizontal : styles.vertical}`}
@@ -75,7 +116,7 @@ export const ActionButtons = ({
         <button
           className={styles.actionBtn}
           title="Screenshot"
-          onClick={onScreenshot}
+          onClick={handleScreenshotClick}
         >
           <Camera size={18} />
         </button>

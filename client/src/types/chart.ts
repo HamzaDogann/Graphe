@@ -194,8 +194,15 @@ export interface HeatmapChartProps extends Omit<BaseChartProps, 'data'> {
   maxColor?: string;
 }
 
+// Radar data point (name and multiple indicator values)
+export interface RadarDataPoint {
+  name: string;
+  indicators: Record<string, number>;
+}
+
 // Radar Chart specific props
-export interface RadarChartProps extends BaseChartProps {
+export interface RadarChartProps extends Omit<BaseChartProps, 'data'> {
+  data: RadarDataPoint[];
   indicators?: string[]; // Labels for radar axes
   showGrid?: boolean;
   fillOpacity?: number;
